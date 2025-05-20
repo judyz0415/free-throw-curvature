@@ -19,20 +19,19 @@
 \affil[3]{Department of Sport Management, Rice University}
 
 \begin{document}
-
   \maketitle
 
   \begin{abstract}
-    The abstract goes here!
+    Basketball shooting coaches agree that smoother shooting motions are better, but there is less agreement about what ``smooth'' means, quantitatively, or what part of the shooting motion needs to be smooth. Using ball tracking data from the 2023-2024 National Basketball Association regular season, we explore the relationship between ball path curvature and free throw shooting performance. We fit Bézier curves to the ball tracking data in the sagittal plane and test different methods of calculating path curvature. We find that both max curvature and terminal curvature are negatively associated with shooting performance, but terminal curvature explains much more of the between-player variance in free throw shooting performance. This suggests that shooting coaches would be better off focusing on the smoothness of the end of the shot rather than at the beginning of the forward motion of the ball.
   \end{abstract}
 
   \section{Introduction}
 
-    Free throws play a critical role in determining a basketball team's success, making the study of shooting mechanics an essential aspect of basketball performance analysis \citep{kozar_importance_1994}. Extensive research has been conducted to identify factors influencing free throw accuracy and to develop strategies for improvement \citep{tran_optimal_2008}. Within the realm of sports analytics, many hypotheses are rooted in conventional wisdom. Conventional coaching wisdom holds that smoother shots are better \citep{haefner_7_2010, penny_overlooked_2016}. However, smoothness has traditionally been assessed through subjective observation rather than a quantifiable measure, leaving room for inaccuracy and bias. 
+    Free throws play a critical role in determining a basketball team's success, making the study of shooting mechanics an essential aspect of basketball performance analysis \citep{kozar_importance_1994}. Extensive research has been conducted to identify factors influencing free throw accuracy and to develop strategies for improvement \citep{tran_optimal_2008}. Within the realm of sports analytics, many hypotheses are rooted in conventional wisdom. Conventional coaching wisdom holds that smoother shots are better \citep{haefner_7_2010, penny_overlooked_2016}. However, smoothness has traditionally been assessed through subjective observation rather than a quantifiable measure, leaving room for inaccuracy and bias. Shooting coaches often focus on smoothing out the highest-curvature part of the smoothing motion, which is typically when the ball begins its final movement forward. But is this the right place to focus?
     
-    A significant contribution to this area is made by \citet{slegers_role_2024}, who proposed a framework for analyzing the free throw ball paths using curvature-based metrics and demonstrated a negative correlation between late-path curvature and free throw accuracy. Their work, however, was based on data of male professional  players in a controlled, practice shooting setting, which raises questions about its generalizability to competitive, high-pressure in-game settings. 
+    \citet{slegers_role_2024} proposed a framework for analyzing the free throw ball paths using curvature-based metrics and collected data from jump shots attempted by male professional basketball players in a controlled, experimental environment. Surprisingly, they found that max ball path curvature to be positively associated with shooting performance. Rather, terminal ball path curvature (more weight on curavture closer to release) was negatively associated with shooting performance. In other words, shooters should not want to smooth out the peak curvature---they should want to smooth out the curvature as the ball approaches release. The recommended focus on terminal path curvature makes intuitive sense because it means keeping the path as smooth as possible when the ball is moving fastest.
 
-    This study builds directly on the methodology of \citet{slegers_role_2024}, adapting to work with in-game data from the National Basketball Association (NBA) collected via Second Spectrum. This adaptation involves pre-processing noisy ball-tracking data, implementing ball path standardization methods for fair comparison across players, creating a  three-dimensional metric to address the limitations of curvature-based approaches that operate solely within the sagittal plane, and regressing the metrics directly against the players' season free throw shooting percentage (FT\%). In doing so, this study not only validates in real-game contexts the findings of \citet{slegers_role_2024}, but also contributes a robust and generalizable framework for evaluating shot smoothness and shooting accuracy at the elite level.
+    The present study builds directly on the methodology of \citet{slegers_role_2024}, adapting to work with in-game data from the National Basketball Association (NBA) collected via Second Spectrum. This adaptation involves pre-processing noisy ball-tracking data, implementing ball path standardization methods for fair comparison across players, creating a  three-dimensional metric to address the limitations of curvature-based approaches that operate solely within the sagittal plane, and regressing the metrics directly against the players' season free throw shooting percentage (FT\%). In doing so, this study not only seeks to validate the findings of \citet{slegers_role_2024} in game conditions, but also contributes a robust and generalizable framework for evaluating shot smoothness and shooting accuracy at the elite level.
 
   \section{Related work}
   
@@ -106,36 +105,23 @@
             \[
               B_n(\tau) = \mathbf{T}_n(\tau) \times \mathbf{M}_n \times \mathbf{P}_n,
             \]
-            where \( \mathbf{T}_n(\tau) \) is a \( 1 \times (n+1) \) row vector with elements \( \tau^0 \) to \( \tau^n \); \( \mathbf{M}_n \) is a square \( (n+1) \times (n+1) \) matrix of binomial coefficients; and \( \mathbf{P}_n \) is an \( (n+1) \times 2 \) matrix containing the \( n+1 \) control points in the form \( (x_i, y_i) \). Then the $m$ points along the Bézier curve corresponding to the $m$ observed data points are given by:
+            where \( \mathbf{T}_n(\tau) \) is a \( 1 \times (n+1) \) row vector with elements \( \tau^0 \) to \( \tau^n \); \( \mathbf{P}_n \) is an \( (n+1) \times 2 \) matrix containing the \( n+1 \) control points in the form \( (x_i, y_i) \); and \( \mathbf{M}_n \) is the \( (n+1) \times (n+1) \) lower-triangular matrix given by:
             \[
-              \mathbf{T}_n \times \mathbf{M}_n \times \mathbf{P}_n,
+              \mathbf{M}_n[i,\, j] = \begin{cases}
+                  \binom{n}{i} \binom{n - i} {j - i} (-1)^{j - i} & \mbox{if } j \ge i\\
+                  0 & \mbox{otherwise}
+              \end{cases}.
             \]
-            where \( \mathbf{T}_n \) is an \( (m + 1) \times (n+1) \) matrix with each row being \( \mathbf{T}_n(\tau) \) for $\tau = \tau_0, ..., \tau_m$.
+            Then the $m$ points along the Bézier curve corresponding to the $m$ observed data points are given by $\mathbf{T}_n \times \mathbf{M}_n \times \mathbf{P}_n$, where \( \mathbf{T}_n \) is an \( (m + 1) \times (n+1) \) matrix with each row being \( \mathbf{T}_n(\tau) \) for $\tau = \tau_0, ..., \tau_m$.
 
             The least-squares fit is the one which minimizes the squared error between the observed data points and the corresponding points on the Bézier curve:
             \[
               \hat{\mathbf{P}}_n = \arg\min_{\mathbf{P}_n \in \mathbb{R}^{n \times 2}} ||\mathbf{Y} - \mathbf{T}_n \mathbf{M}_n \mathbf{P}_n||.
             \]
-            This optimization has a closed-form analytical solution:
+            This optimization problem has a closed-form analytical solution:
             \[
               \hat{\mathbf{P}}_n = \mathbf{M}_n^{-1} (\mathbf{T}_n^\top \mathbf{T}_n)^{-1} \mathbf{T}_n^\top \mathbf{Y}.
             \]
-            
-%            To find the optimal control points to define each Bézier curve, it is helpful to express \(B_n(\tau)\) in matrix form:
-%            \[
-%            B_n(\tau) = \mathbf{T}_n \mathbf{M}_n \mathbf{P}_n
-%            \]
-%            where, \( \mathbf{T}_n \) is a \( 1 \times (n+1) \) row vector with elements of \( \tau^0 \) to \( \tau^n \), \( \mathbf{M}_n \) is a square \( (n+1) \times (n+1) \) matrix of binomial coefficients, and \( \mathbf{P}_n \) is a \( (n+1) \times 2 \) matrix containing the \( n+1 \) control points in the form \( (x_i, y_i) \).
-            
-%            Then, a least squares formulation could be applied to minimize the error between points on the Bézier curve, approximated using the \(n\) control points, and the observed \(m\) data points. Let the \(\mathbf{Y}\) be the \(m \times 2\) observed data matrix, the optimal set of control points \(\mathbf{P^{*}}\) can be found by minimizing
-%            \[
-%            \left\| \mathbf{Y} - \mathbf{T}_n \mathbf{M}_n \mathbf{P}_n \right\|^2
-%            \]
-%            Hence,
-%            \[
-%            \mathbf{P^{*}}\ = \mathbf{M}^{-1} (\mathbf{T}^\top \mathbf{T})^{-1} \mathbf{T}^\top \mathbf{Y}
-%            \]
-%            where \( \mathbf{T} \) is a \( m \times (n+1) \) matrix with each row being \( \mathbf{T_n} \) for the \( m \) measured points.
             
             Figure \ref{fig:free-throw-bezier} shows an example of a free throw shot modeled using a seventh-order Bézier curve (i.e. eight control points). As seen in the figure, the curve closely follows the observed data, capturing both the smooth upward arc and the transition into the release phase of the shot. Throughout this study, we use $n = 7$ because we found this to yield satisfactory curve approximations via visual inspection of our data. This is similar to \citet{slegers_role_2024}, who used $n = 6$.
             
@@ -188,44 +174,22 @@
               \label{fig:weights}
           \end{figure}
 
-    \subsection{Average Change in Direction}
-    \label{sec:average-change-in-direction}
-    
-      An obvious limitation of the weighted curvature integral metric is that it only captures the shot path in two dimensions, i.e. the sagittal plane. However, shot smoothness and stability are also influenced by lateral deviations in the shot path, which this metric does not account for. Therefore, we create an additional, alternative three-dimensional metric capturing the change in both lateral and sagittal directions of the shooting motion. Later, we compare this metric against the weighted curvature integral metric in the previous section.
-
-      Each observed data point in intervals of 1/25 seconds is represented using coordinates corresponding to depth \(x\), lateral deviation \(y\) and height \(z\). The velocity vectors along the shot path are:
-      \[
-        \mathbf{v}_i = \begin{bmatrix} x_{i+1} - x_i \\ y_{i+1} - y_i \\ z_{i+1} - z_i \end{bmatrix}.
-      \]
-      The speed of the shot at each time step is the Euclidean norm of the velocity vector:
-      \[
-        \|\mathbf{v}_i\| = \sqrt{(x_{i+1} - x_i)^2 + (y_{i+1} - y_i)^2 + (z_{i+1} - z_i)^2},
-      \]
-      and the direction of movement is given by \(\mathbf{\hat{v}}_i = \mathbf{v}_i / \|\mathbf{v}_i\| \). The change in direction at each time point is the magnitude of the difference between successive direction vectors: \(\Delta \theta_i = \|\mathbf{\hat{v}}_i - \mathbf{\hat{v}}_{i-1}\|\). The average change in direction is given by
-      \[
-        \Delta \theta = \frac{1}{m} \sum_{i=1}^{m} \Delta \theta_i.
-      \]
-
-      We considered a smoothed version of this metric by calculating a moving average of the velocity vector across frames, but we found that the noise in the tracking data was low enough that this change did not make a significant difference.
-      
     \subsection{Weighted Least Squares Regression}
 
       The purpose of the curvature metrics described in the previous section is to quantify the smoothness of each shot. Ultimately, our goal is to test the association between shot smoothness and shooting accuracy. While \citet{slegers_role_2024} measured shooting performance using intra-individual release velocity standard deviation in a controlled setting, this metric is not readily available or reliable for in-game data due to the lack of biomechanical tracking data, which makes it difficult to precisely identify the moment of ball release. Therefore, we use player-level free throw percentage (FT\%) as the outcome variable. FT\% reflects real-world shooting performance under competitive, high pressure and is widely accepted as a summary statistic for evaluating a player’s free throw success over time.
 
-      To test the relationship between shot smoothness and FT\%, we calculate each player's average weighted curvature integral from Section \ref{sec:curvature} and average change in direction from Section \ref{sec:average-change-in-direction}, and we perform two separate weighted least squares (WLS) regression models by regressing season FT\% onto each of these metrics. Using \(\mbox{FTA}_p\), \(\mbox{FT\%}_p\) and \(C_p\) to denote player $p$'s season free throw attempts, season FT\% and curvature metric (weighted curvature integral or average change in direction), respectively, we estimate the following model:
+      To test the relationship between shot smoothness and FT\%, we calculate each player's average curvature across the free throws for which we have ball tracking data, and we perform two separate weighted least squares (WLS) regression models by regressing season FT\% onto average curvature. Using \(\mbox{FTA}_p\), \(\mbox{FT\%}_p\) and \(C_p\) to denote player $p$'s season free throw attempts, season FT\% and curvature metric (i.e. max curvature or weighted curvature integral), respectively, we estimate the following model:
       \begin{equation}
       \label{eqn:weighted-least-squares}
         \mbox{FT\%}_p \sim \mbox{Normal}(\alpha + \beta \cdot C_p, \sigma^2 / \mbox{FTA}_p),
       \end{equation}
-      assuming independence between each players' outcomes. In effect, this weights each observation by the number of free throws attempted by the player. This ensures that players who shot more free throws in the 2023-2024 season, and hence have precise shooting estimates, exert greater influence on the model.
-
-      For each curvature metric, we obtain a $p$-value by testing the null hypothesis $\mathcal{H}_0: \beta = 0$ against the one-side alternative $\mathcal{H}_A: \beta < 0$ because we expect {\it a priori} that curvature is negatively associated with FT\%.
+      assuming independence between each players' outcomes. In effect, this weights each observation by the number of free throws attempted by the player. This ensures that players who shot more free throws in the 2023-2024 season, and hence have precise shooting estimates, exert greater influence on the model. For each curvature metric, we obtain a $p$-value by testing the null hypothesis $\mathcal{H}_0: \beta = 0$ against the two-sided alternative $\mathcal{H}_A: \beta \ne 0$.
     
 \section{Results}
     
-    The metrics computed for this study include (a) max curvature $\kappa_{\max} = \max_\tau \kappa(\tau)$; (b) time-weighted curvature integrals with weighting factors $\ell$ = 0, 3 and 5; and (c) the average change in direction of the ball. For each player, these metrics are computed on a per-shot basis and subsequently averaged across all of their recorded free throw attempts (approximately 15 shots per player) to obtain player-level estimates.
+    The metrics computed for this study include (a) max curvature $\kappa_{\max} = \max_\tau \kappa(\tau)$ and (b) time-weighted curvature integrals with weighting factors $\ell$ = 0, 3 and 5. For each player, these metrics are computed on a per-shot basis and subsequently averaged across all of their recorded free throw attempts (approximately 15 shots per player) to obtain player-level estimates.
 
-    Figure \ref{fig:scattered} shows the distribution of FT\% and all curvature metrics among the 35 players in the sample. FT\% appears to be approximately symmetric but slightly skewed to the left, which is consistent with most NBA players achieving moderate to high accuracy on the free throw line. Curvature-based metrics, particularly the max curvature and the weighted curvature integrals with $\ell$ = 3 and 5, are right-skewed, reflecting that a few players have large peak or terminal curvature. The average change in direction metric has a relatively uniform distribution with a moderate spread.
+    Figure \ref{fig:scattered} shows the distribution of FT\% and all curvature metrics among the 35 players in the sample. FT\% appears to be approximately symmetric but slightly skewed to the left, which is consistent with most NBA players achieving moderate to high accuracy on the free throw line. All of the curvature metrics are right-skewed, reflecting that a few players have large peak or terminal curvatures.
 
     \begin{figure}[H]
         \centering
@@ -244,7 +208,6 @@
         \midrule
         FT\% & 74.29 & 12.39 & 50.60--92.70 \\
         Max Curvature & 5.50 & 5.15 & 0.76--23.85 \\
-        Average Change in Direction & 0.20 & 0.04 & 0.14--0.28 \\
         Unweighted Curvature Integral ($\ell=0$) & 0.91 & 0.34 & 0.42--1.68 \\
         Time-weighted Curvature Integral ($\ell=3$) & 0.63 & 0.25 & 0.28--1.25 \\
         Time-weighted Curvature Integral ($\ell=5$) & 0.45 & 0.17 & 0.24--0.97 \\
@@ -254,22 +217,23 @@
         \label{tab:summary-stats}
     \end{table}
 
-    All five metrics are regressed against FT\% using a WLS framework. The results are presented in Table \ref{tab:wls-results}. The results reveal that all five metrics are statistically significant predictors of FT\%, with p-values below the threshold of 0.05. Among them, the time-weighted curvature integrals demonstrate the strongest explanatory power, particularly at $\ell = 5$, which achieves the highest $R^2$ value of 0.33 and adjusted $R^2$ of 0.3097. This finding aligns with those in \citet{slegers_role_2024}'s controlled experiments, suggesting that lower terminal curvature is correlated with higher free throw accuracy. Moreover, placing greater emphasis on the latter part of the ball’s trajectory—where control and release are most critical—improves the model's ability to explain variations in shooting accuracy. The max curvature metric demonstrates a negative correlation with FT\%, which also aligns with the conclusion in \citet{slegers_role_2024}'s study that lower max curvatures are correlated with better shooting performances, though it used intra-individual release velocity standard deviation as a metric for shooting performance instead of seasonal FT\%. While the average change in ball direction metric is still significant, it explains less variance ($R^2=0.1335$) than the curvature-based metrics.  
+    Table \ref{tab:wls-results} summarizes the results of estimating the WLS model (\ref{eqn:weighted-least-squares}) for each of the four curvature metrics. Each metric is a statistically significant predictor of FT\%, with each $p$-value below 0.01. Among them, the time-weighted curvature integrals demonstrate the strongest explanatory power, particularly at $\ell = 5$, which achieves the highest $R^2$ value of 0.330. This finding aligns with the controlled experiments of \citet{slegers_role_2024}, suggesting that lower terminal curvature is correlated with greater shooting performance.
+
+    Interestingly, the relationship between max curvature and shooting performance runs counter to the findings of \citet{slegers_role_2024}. We find that max curvature is negatively associated with FT\%, and the relationship is statistically significant. Our overall finding is similar. Placing greater emphasis on the latter part of the ball's trajectory---where control and release are most critical---improves the model's ability to explain variations in shooting accuracy. However, it is interesting to note the directionally different relationship we see between max curvature and shooting performance. The present results reflect free throw shooting by NBA players in game conditions while the prior results reflect three-point jump shooting by lower-level professionals in practice conditions.
     
     \begin{table}[H]
         \centering
-        \begin{tabular}{lrrrr}
+        \begin{tabular}{lrrr}
         \toprule
-        \textbf{Metric} & \textbf{Coefficient} $\beta$ & $p$-\textbf{Value} & \textbf{R\textsuperscript{2}} & \textbf{Adj. R\textsuperscript{2}} \\
+        \textbf{Metric} & \textbf{Coefficient} $\beta$ & $p$-\textbf{Value} & \textbf{R\textsuperscript{2}}\\
         \midrule
-        Max Curvature                               &   --0.98  & 0.0043  & 0.222  & 0.198 \\
-        Average Change in Direction                 & --126.81  & 0.0309  & 0.134  & 0.107 \\
-        Unweighted Curvature Integral ($\ell=0$)    &  --15.90  & 0.0053  & 0.213  & 0.189 \\
-        Time-weighted Curvature Integral ($\ell=3$) &  --29.81  & 0.0004  & 0.316  & 0.295 \\
-        Time-weighted Curvature Integral ($\ell=5$) &  --48.73  & 0.0003  & 0.330  & 0.310 \\
+        Max Curvature                               &   --0.98  & 0.0043  & 0.222 \\
+        Unweighted Curvature Integral ($\ell=0$)    &  --15.90  & 0.0053  & 0.213 \\
+        Time-weighted Curvature Integral ($\ell=3$) &  --29.81  & 0.0004  & 0.316 \\
+        Time-weighted Curvature Integral ($\ell=5$) &  --48.73  & 0.0003  & 0.330 \\
         \bottomrule
         \end{tabular}
-        \caption{\it Summary statistics from estimating the weighted least squares regression model (\ref{eqn:weighted-least squares}) using each curvature metric to predict FT\%. The $p$-value tests the null hypothesis $\mathcal{H}_0 : \beta = 0$ against the one-sided alternative $\mathcal{H}_A : \beta < 0$.}
+        \caption{\it Summary statistics from estimating the weighted least squares regression model (\ref{eqn:weighted-least-squares}) using each curvature metric to predict FT\%. The $p$-value tests the null hypothesis $\mathcal{H}_0 : \beta = 0$ against the one-sided alternative $\mathcal{H}_A : \beta < 0$.}
         \label{tab:wls-results}
     \end{table}
 
@@ -277,11 +241,13 @@
 
     \subsection{Results}
       
-        The results of this study provide strong empirical support for the hypothesis that smoother shot trajectories---particularly those with lower curvature near the point of release---are associated with higher free throw accuracy in real-game contexts in the NBA. This finding is consistent with the conclusions drawn by \citet{slegers_role_2024}, who originally demonstrated a negative correlation between terminal curvature and shooting performance in a controlled, experimental environment. By applying their approach on in-game NBA data and substituting velocity-based shooting performance metrics with actual free throw percentage (FT\%) as the outcome variable, this study demonstrates that the relationship between smoothness and performance holds under the dynamic and high-pressure conditions of actual games.
+      The results of this study provide strong empirical support for the hypothesis that smoother shot trajectories---particularly those with lower curvature near the point of release---are associated with higher free throw accuracy in real-game contexts in the NBA. Among the metrics examined, the time-weighted curvature integrals exhibited the strongest predictive power, particularly when using higher weighting parameters (\(\ell=3\) and \(\ell=5\)). This aligns with the intuition that late-stage control of the shot is critical for accuracy.
+      
+      Our findings are consistent in some ways with the conclusions drawn by \citet{slegers_role_2024}, and in some ways they differ. Both studies found that terminal ball path curvature is the strongest predictor of shooting performance and that coaches should focus on smoothing terminal curvature rather than smoothing max curvature. It is interesting to note that the two studies found directionally opposing conclusions regarding the relationship between max curvature and shooting performance. In the present study, max curvature is negatively associated with shooting performance.
 
-        Among the metrics examined, the time-weighted curvature integrals exhibited the strongest predictive power, particularly when using higher weighting parameters (\(\ell=3\) and \(\ell=5\)). This aligns with the intuition that late-stage control of the shot is critical for accuracy and it supports the notion that not all phases of the shot trajectory contribute equally to the shot success. The results also highlight the advantage of curvature-based metrics over simpler trajectory descriptors. While the average change in direction was a significant predictor that captures the ball movements in three dimensions, it explained less variance than the curvature integrals.
-        
-        Taken together, these findings contribute a more robust and generalizable framework for quantifying shot smoothness using in-game tracking data. They validate curvature-based metrics as scalable tools for performance evaluation, player development and automated scouting. Most importantly, they mark a shift from conventional, intuitive-driven coaching principles to data-informed validation with in-game evidence.
+      The primary difference between the studies is that the present used data from three throws attempted by NBA players in game conditions and the former used data from three-point jump shots attempted by lower-level professionals in practice conditions. The contradictory results are especially interesting because from basketball domain knowledge, we would have expected lower max curvature to be more helpful for three-point shots. One-motion shots with lower max curvature allow the athlete to generate the greater power required for longer-distance shots. Explaining the observed phenomenon remains an open question. 
+      
+      Taken together, these findings contribute a more robust and generalizable framework for quantifying shot smoothness using in-game tracking data. They validate curvature-based metrics as scalable tools for performance evaluation, player development and automated scouting. Most importantly, they mark a shift from conventional, intuitive-driven coaching principles to data-informed validation with in-game evidence.
 
     \subsection{Limitations}
 
