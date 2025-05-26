@@ -1,0 +1,81 @@
+import pandas as pd
+import numpy as np
+from scipy.integrate import simpson
+from numpy.linalg import lstsq
+from bezier_curve_functions import find_end, bernstein_poly, bezier_curve, bezier_curvature
+
+player_names = [
+    'Klay Thompson', 'Steph Curry', 'Bogdan Bogdanovic', 'Damian Lillard', 'Anfernee Simons',
+    'Paul George', 'Derrick White', 'Tobias Harris', 'Shai GilgeousAlexander', 
+    'Karl Anthony Towns', 'Tim Hardaway Jr', 'Luka Doncic', 'Dante Exum', 'Jaden Hardy', 
+    'Alec Burks', 'Paolo Banchero', 'Ivica Zubac', 'Derrick Jones Jr', 'Dwight Powell', 
+    'Domantas Sabonis', 'Maxi Kleber', 'Zion Williamson', 'Russell Westbrook', 'Josh Green', 
+    'Omax Prosper', 'Giannis Antetokounmpo', 'Aaron Gordon', 'Rudy Gobert', 'Clint Capela', 
+    'PJ Washington', 'Daniel Gafford', 'Andre Drummond', 'Jakob Poeltl', 'Nic Claxton', 
+    'Dereck Lively'
+]
+
+# second spectrum free throw data folder 
+file_temp = '/Users/ruoqianzhu/Desktop/freethrows/{} FTs.xlsx'
+results = []
+
+for player in player_names:
+    file_path = file_temp.format(player)
+    sheets_dict = pd.read_excel(file_path, sheet_name=None)
+
+    # initialize 
+    max_curvatures = []
+    integrals_l0 = []
+    integrals_l3 = []
+    integrals_l5 = []
+
+    for sheet_name, df in sheets_dict.items():
+        df['E_Distance'] = df['E_Distance'].abs()
+
+        path_end = find_end(df)
+        # identify end of shot (estimated release point)
+        df_copy = df[['E_Distance','G_Height','F_Offset']].iloc[:path_end - 5]
+        # identify start of shot 
+        path_start = df_copy['E_Distance'].idxmax() 
+        df = df[['E_Distance','G_Height','F_Offset']].iloc[path_start:path_end]
+
+        # set number of control points 
+        n = 8
+        num_total_points = len(df)
+
+        # find optimal control points using least-squares formulation 
+        t = np.linspace(0, 1, num_total_points)
+        T_n = np.zeros((num_total_points, n+1))
+        for i in range(n+1):
+            T_n[:, i] = bernstein_poly(i, n, t)
+        Y = df[['E_Distance', 'G_Height']]
+        p_star, _, _, _ = lstsq(T_n, Y)
+        control_points = list(map(tuple, p_star))
+
+        # calculate bezier curve and curvatures along the curve 
+        x_vals, y_vals = bezier_curve(control_points, num_points=100)
+        t_interval = np.linspace(0, 1, 100)
+        curvatures = np.array([bezier_curvature(control_points, t) for t in t_interval])
+
+        # find max curvature; trim to reduce noise 
+        start_idx = int(0.4 * len(curvatures))
+        end_idx = int(0.91 * len(curvatures))
+        max_curvatures.append(np.max(curvatures[start_idx:end_idx]))
+
+        # calculate terminal curvature integrals with different weights 
+        for l, store in zip([0, 3, 5], [integrals_l0, integrals_l3, integrals_l5]):
+            w_l = (l + 1) * t_interval ** l
+            sigma = simpson(w_l * curvatures, t_interval)
+            store.append(sigma)
+
+    results.append({
+        'Player': player,
+        'Max Curvature': np.mean(max_curvatures),
+        'Unweighted Curvature Integral (l=0)': np.mean(integrals_l0),
+        'Time-weighted Curvature Integral (l=3)': np.mean(integrals_l3),
+        'Time-weighted Curvature Integral (l=5)': np.mean(integrals_l5)
+    })
+
+output_df = pd.DataFrame(results)
+output_df = pd.merge(output_df, pd.read_excel('free_throw_stats.xlsx'), how='left', on='Player')
+output_df.to_excel('curvature_results.xlsx', index=False)

@@ -1,0 +1,117 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+file_path = 'curvature_results.xlsx'
+df = pd.read_excel(file_path)
+
+# histograms for curvature metrics 
+plt.figure(figsize=(15, 8))  
+
+plt.subplot(2, 2, 1)
+sns.histplot(df['Max Curvature'], kde=True, bins=15)
+plt.title('Distribution of Max Curvature', fontsize=16)
+plt.xlabel('Max Curvature')
+plt.ylabel('Frequency', fontsize=14)
+
+plt.subplot(2, 2, 2)
+sns.histplot(df['Unweighted Curvature Integral (l=0)'], kde=True, bins=15)
+plt.title('Distribution of Unweighted Curvature Integral (l=0)', fontsize=16)
+plt.xlabel('Unweighted Curvature Integral (l=0)')
+plt.ylabel('Frequency', fontsize=14)
+
+plt.subplot(2, 2, 3)
+sns.histplot(df['Time-weighted Curvature Integral (l=3)'], kde=True, bins=15)
+plt.title('Distribution of Time-weighted Curvature Integral (l=3)', fontsize=16)
+plt.xlabel('Time-weighted Curvature Integral (l=3)')
+plt.ylabel('Frequency', fontsize=14)
+
+plt.subplot(2, 2, 4)
+sns.histplot(df['Time-weighted Curvature Integral (l=5)'], kde=True, bins=15)
+plt.title('Distribution of Time-weighted Curvature Integral (l=5)', fontsize=16)
+plt.xlabel('Time-weighted Curvature Integral (l=5)')
+plt.ylabel('Frequency', fontsize=14)
+
+plt.tight_layout()
+plt.show()
+plt.savefig('distributions.png', dpi=300)
+
+# create summary table for descriptive stats for ft% and all metrics 
+metrics_all = [
+    'FT%',
+    'Max Curvature',
+    'Unweighted Curvature Integral (l=0)',
+    'Time-weighted Curvature Integral (l=3)',
+    'Time-weighted Curvature Integral (l=5)'
+]
+summary = pd.DataFrame(index=metrics_all)
+summary['Mean'] = df[metrics_all].mean()
+summary['Std Dev'] = df[metrics_all].std()
+summary['Range'] = df[metrics_all].apply(lambda x: f"{x.min():.2f}–{x.max():.2f}")
+summary[['Mean', 'Std Dev']] = summary[['Mean', 'Std Dev']].round(2)
+summary
+
+# WLS 
+y = df['FT%']
+weights = 1 / (df['FT% SE'] ** 2)
+
+metrics = [
+    'Max Curvature',
+    'Unweighted Curvature Integral (l=0)',
+    'Time-weighted Curvature Integral (l=3)',
+    'Time-weighted Curvature Integral (l=5)'
+]
+
+summary_data = []
+
+for metric in metrics:
+    X = sm.add_constant(df[metric])
+    model = sm.WLS(y, X, weights=weights)
+    results = model.fit()
+
+    summary_data.append({
+        'Metric': metric,
+        'Coefficient': results.params[1],
+        'P-Value': results.pvalues[1],
+        'R²': results.rsquared,
+        'Adj. R²': results.rsquared_adj
+    })
+
+summary_table = pd.DataFrame(summary_data)
+summary_table = summary_table.round(4)
+
+print(summary_table)
+
+# visualize WLS fits and confidence intervals 
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+axes = axes.flatten()
+
+for i, metric in enumerate(metrics):
+    X = sm.add_constant(df[metric])
+    model = sm.WLS(y, X, weights=weights)
+    results = model.fit()
+
+    # create prediction space
+    x_vals = np.linspace(df[metric].min(), df[metric].max(), 100)
+    X_pred = sm.add_constant(x_vals)
+    y_pred = results.predict(X_pred)
+
+    # calculate standard errors for confidence interval
+    pred_var = results.mse_resid * (1 / weights.mean() + (x_vals - df[metric].mean())**2 / ((df[metric] - df[metric].mean())**2).sum())
+    ci = 1.96 * np.sqrt(pred_var)
+
+    # scatter plot with confidence intervals 
+    axes[i].scatter(df[metric], y, alpha=0.7)
+    axes[i].plot(x_vals, y_pred, color='black', label='WLS Fit')
+    axes[i].fill_between(x_vals, y_pred - ci, y_pred + ci, color='red', alpha=0.15, label='95% Confidence Interval')
+      
+    axes[i].set_xlabel(metric)
+    axes[i].set_ylabel('FT%')
+    axes[i].legend()
+
+plt.tight_layout()
+plt.show()
+plt.savefig('regressionlines.png', dpi=300)
+
