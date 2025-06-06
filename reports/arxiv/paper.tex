@@ -1,14 +1,14 @@
 
 \documentclass{article}
 
+\usepackage{amsfonts, amsmath, authblk, booktabs, float, graphicx, natbib}
 \usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}  % necessary for special characters in author names for references
+
+% This nastiness for the bibliography to work both locally and on Overleaf
+% https://tex.stackexchange.com/questions/623701/path-for-bib-file-working-simultaneously-in-texstudio-and-overleaf
+\bibliographystyle{\ifnum\pdfstrcmp{\jobname}{output}=0 reports/apa-good\else ../apa-good\fi}
 \linespread{1.2}
-
-\usepackage{amsfonts, amsmath, authblk, float, graphicx}
-
-\usepackage{natbib}
-\usepackage{booktabs}
-\bibliographystyle{reports/apa-good}
 
 \title{Ball path curvature and in-game free throw shooting proficiency in the National Basketball Association}
 \author[1]{Ruoqian Zhu}
@@ -65,8 +65,8 @@
 
     \begin{figure}[H]
         \centering
-        \includegraphics[scale=0.3]{reports/arxiv/data_description.png}
-        \caption{\it Three-view projection of a single free throw trajectory captured using ball tracking data. The panels display the ball’s motion in the X-Y plane (view from behind shooter), X-Z plane (view from the side) and Y-Z plane (view from above), respectively. The trajectory begins at the start of the shooting motion and ends when the ball arrives at the rim. Note the compressed scale in the Y dimension (lateral offset).}
+        \includegraphics[scale=0.3]{data_description.png}
+        \caption{\it Three-view projection of a single free throw trajectory captured using ball tracking data. The panels display the ball's motion in the X-Y plane (view from behind shooter), X-Z plane (view from the side) and Y-Z plane (view from above), respectively. The trajectory begins at the start of the shooting motion and ends when the ball arrives at the rim. Note the compressed scale in the Y dimension (lateral offset).}
         \label{fig:data-description}
       \end{figure}
       
@@ -80,7 +80,7 @@
 
       \begin{figure}[H]
         \centering
-        \includegraphics[scale=0.4]{reports/arxiv/path_standardization.png}
+        \includegraphics[scale=0.4]{path_standardization.png}
         \caption{\it Ball trajectory in the X-Z plane for a single free throw attempt. The green marker indicates the start of the analyzed trajectory, defined as the frame where the ball is furthest from the player’s body. The red marker indicates the end point, defined as two frames after the ball reaches its maximum velocity, approximating the moment of release.}
         \label{fig:path-standardization}
       \end{figure}
@@ -171,7 +171,7 @@
 
           \begin{figure}[H]
               \centering
-              \includegraphics[width=0.8\linewidth]{reports/arxiv/weights.png}
+              \includegraphics[width=0.8\linewidth]{weights.png}
               \caption{\it Weighted curvature and curvature integrals for the free throw shot from Figure \ref{fig:free-throw-bezier}. The top row shows the product of time-weight and curvature, and the bottom row shows the time-weighted curvature integral \(\sigma(\ell)\), for \(\ell = 0, 3, 5\). The top-left panel shows the unweighted curvature (\(\ell = 0\)).}
               \label{fig:weights}
           \end{figure}
@@ -195,7 +195,7 @@
 
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.8\linewidth]{reports/arxiv/distributions.png}
+        \includegraphics[width=0.8\linewidth]{distributions.png}
         \caption{\it Distributions of key shot smoothness metrics across all players in the study. Kernel density estimate (KDE) curves are used to illustrate the underlying shape of each distribution.}
         \label{fig:scattered}
     \end{figure}
@@ -239,7 +239,7 @@
     
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.6\linewidth]{reports/arxiv/regressionlines.png}
+        \includegraphics[width=0.6\linewidth]{regressionlines.png}
         \caption{\it Weighted Least Squares (WLS) regression models illustrating the relationship between free throw percentage (FT\%) and four curvature-based shooting metrics. The black lines indicate the WLS regression fits, and the shaded red bands represent the 95\% confidence bands around each regression line. Across all subplots, higher curvature values are associated with lower FT\%.}
         \label{fig:regressionlines}
     \end{figure}
@@ -262,12 +262,14 @@
 
       While the curvature-based metrics developed in this study enhance the understanding of shooting mechanics using only ball tracking data, several limitations must be acknowledged. First, free throw shooting is a complex motion influenced by numerous factors beyond curvature, such as release angle, velocity and joint kinematics. Relying solely on ball tracking data and curvature analysis accounts for only a fraction of what determines shot accuracy, leaving many contributing factors unexplored. Second, the curvature metrics primarily assess the shot in the sagittal plane, neglecting lateral deviations that could introduce instabilities in the actual shot path. Third, Bézier curves are sensitive to parameters such as the number of control points and the selection of start and end points for the ball path. Since curvature-based metrics depend on the Bézier curves used to model the actual trajectory, small variations in these parameters can lead to differences in the computed metric values, which could influence the reproducibility of the model. Therefore, anyone using this approach should carefully choose control points and start/end criteria to best suit their specific needs and ensure consistency across the entire dataset.
 
-      Given these limitations, the model proposed in this study is more effective for identifying shooting patterns of players than for being used as predictors for shooting accuracy. These findings might be valuable to coaches and players as quantifiable metrics and by helping them visualize the shooting trajectory, enhancing the understanding of free throw shooting mechanics and the identification of areas of improvements.
+      These findings might be valuable to coaches and players as quantifiable metrics and by helping them visualize the shooting trajectory, enhancing the understanding of free throw shooting mechanics and the identification of areas of improvements.
 
     \subsection{Future Work}
     
-      Future work could involve integrating biomechanical data to expand the application of the developed metrics, enabling a more comprehensive analysis of how different joints coordinate to influence the smoothness of the shot. By employing a similar approach as the weighting function, the shooting path could be further segmented to isolate specific phases, allowing for targeted analyses based on different needs. Moreover, one could investigate the impact of release speed on shot smoothness, as it remains unclear, and is individualized by the players' shooting style.  
+      Future work could involve integrating biomechanical data to expand the application of the developed metrics, enabling a more comprehensive analysis of how different joints coordinate to influence the smoothness of the shot. By employing a similar approach as the weighting function, the shooting path could be further segmented to isolate specific phases, allowing for targeted analyses based on different needs. Moreover, one could investigate the impact of release speed on shot smoothness, as it remains debatable and unclear.
 
-  \bibliography{reports/free-throw-curvature}
+  % This nastiness for the bibliography to work both locally and on Overleaf
+  % https://tex.stackexchange.com/questions/623701/path-for-bib-file-working-simultaneously-in-texstudio-and-overleaf
+  \bibliography{\ifnum\pdfstrcmp{\jobname}{output}=0 reports/free-throw-curvature\else ../free-throw-curvature\fi}
 
 \end{document}
