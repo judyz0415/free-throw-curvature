@@ -11,7 +11,7 @@
 \bibliographystyle{reports/apa-good}
 
 \title{Ball path curvature and in-game free throw shooting proficiency in the National Basketball Association}
-\author[1]{Judy Zhu}
+\author[1]{Ruoqian Zhu}
 \author[2]{Dave Love}
 \author[3]{Scott Powers}
 \affil[1]{Department of Mathematics, Rice University}
@@ -22,16 +22,16 @@
   \maketitle
 
   \begin{abstract}
-    Basketball shooting coaches agree that smoother shooting motions are better, but there is less agreement about what ``smooth'' means, quantitatively, or what part of the shooting motion needs to be smooth. Using ball tracking data from the 2023-2024 National Basketball Association regular season, we explore the relationship between ball path curvature and free throw shooting performance. We fit Bézier curves to the ball tracking data in the sagittal plane and test different methods of calculating path curvature. We find that both max curvature and terminal curvature are negatively associated with shooting performance, but terminal curvature explains much more of the between-player variance in free throw shooting performance. This suggests that shooting coaches would be better off focusing on the smoothness of the end of the shot rather than at the beginning of the forward motion of the ball.
+    Basketball shooting coaches agree that smoother shooting motions are better, but there is less agreement about what ``smooth'' means quantitatively or what part of the shooting motion needs to be smooth. Using ball tracking data from the 2023-2024 National Basketball Association regular season, we explore the relationship between ball path curvature and free throw shooting performance. We fit Bézier curves to the ball tracking data in the sagittal plane and test different methods of calculating path curvature. We find that both max curvature and terminal curvature are negatively associated with shooting performance, but terminal curvature explains much more of the between-player variance in free throw shooting performance. This suggests that shooting coaches would be better off focusing on the smoothness of the end of the shot rather than at the beginning of the forward motion of the ball.
   \end{abstract}
 
   \section{Introduction}
 
     Free throws play a critical role in determining a basketball team's success, making the study of shooting mechanics an essential aspect of basketball performance analysis \citep{kozar_importance_1994}. Extensive research has been conducted to identify factors influencing free throw accuracy and to develop strategies for improvement \citep{tran_optimal_2008}. Within the realm of sports analytics, many hypotheses are rooted in conventional wisdom. Conventional coaching wisdom holds that smoother shots are better \citep{haefner_7_2010, penny_overlooked_2016}. However, smoothness has traditionally been assessed through subjective observation rather than a quantifiable measure, leaving room for inaccuracy and bias. Shooting coaches often focus on smoothing out the highest-curvature part of the smoothing motion, which is typically when the ball begins its final movement forward. But is this the right place to focus?
     
-    \citet{slegers_role_2024} proposed a framework for analyzing the free throw ball paths using curvature-based metrics and collected data from jump shots attempted by male professional basketball players in a controlled, experimental environment. Surprisingly, they found that max ball path curvature to be positively associated with shooting performance. Rather, terminal ball path curvature (more weight on curavture closer to release) was negatively associated with shooting performance. In other words, shooters should not want to smooth out the peak curvature---they should want to smooth out the curvature as the ball approaches release. The recommended focus on terminal path curvature makes intuitive sense because it means keeping the path as smooth as possible when the ball is moving fastest.
+    \citet{slegers_role_2024} proposed a framework for analyzing the free throw ball paths using curvature-based metrics and collected data from jump shots attempted by male professional basketball players in a controlled, experimental environment. Surprisingly, they found that max ball path curvature to be positively associated with shooting performance. Rather, terminal ball path curvature (more weight on curvature closer to release) was negatively associated with shooting performance. In other words, shooters should not want to smooth out the peak curvature---they should want to smooth out the curvature as the ball approaches release. The recommended focus on terminal path curvature makes intuitive sense because it means keeping the path as smooth as possible when the ball is moving the fastest.
 
-    The present study builds directly on the methodology of \citet{slegers_role_2024}, adapting to work with in-game data from the National Basketball Association (NBA) collected via Second Spectrum. This adaptation involves pre-processing noisy ball-tracking data, implementing ball path standardization methods for fair comparison across players, creating a  three-dimensional metric to address the limitations of curvature-based approaches that operate solely within the sagittal plane, and regressing the metrics directly against the players' season free throw shooting percentage (FT\%). In doing so, this study not only seeks to validate the findings of \citet{slegers_role_2024} in game conditions, but also contributes a robust and generalizable framework for evaluating shot smoothness and shooting accuracy at the elite level.
+    The present study builds directly on the methodology of \citet{slegers_role_2024}, adapting to work with in-game data from the National Basketball Association (NBA) collected via Second Spectrum. This adaptation involves pre-processing noisy ball-tracking data, implementing ball-path standardization methods for fair comparison across players, and regressing the metrics directly against the players' season free throw shooting percentage (FT\%). In doing so, this study not only seeks to validate the findings of \citet{slegers_role_2024} in game conditions, but also contributes a robust and generalizable framework for evaluating shot smoothness and shooting accuracy at the elite level.
 
   \section{Related work}
   
@@ -43,11 +43,11 @@
 
       However, more recent research has shown that optimal shooting mechanics, specifically release conditions, must be highly individualized to achieve the best result. Using surface electromyography and high-speed cameras, \citet{pakosz_muscle_2021} revealed that elite basketball players manifest increased variability in muscular activation time relative to their less skilled counterparts. This variability is likely due to extensive training that allows players to fine-tune their muscle activation timing with specific shot requirements. This study concluded that there is no universal way to artificially increase or decrease muscle activation time, and optimal shooting performance is highly dependent on one's ability to control and adjust muscle activation in an individualized manner. 
 
-      A similar concept of individualized optimization in shooting mechanics has been applied to release strategies, including release angles and velocity. Research has demonstrated that maximum shooting performance is achieved when athletes match their release parameters to their unique mechanics, rather than conforming to a predetermined ideal release angle \citep{slegers_basketball_2022}. These findings reinforce the idea that an optimal shot is not universal but highly specific to players, shaped by their experiences, physical attributes and muscle coordination. 
+      A similar concept of individualized optimization in shooting mechanics has been applied to release strategies, including release angles and velocity. Research has shown that maximum shooting performance is achieved when athletes match their release parameters to their unique mechanics, rather than conforming to a predetermined ideal release angle \citep{slegers_basketball_2022}. These findings reinforce the idea that an optimal shot is not universal but highly specific to players, shaped by their experiences, physical attributes, and muscle coordination. 
 
     \subsection{Ball Path Curvature and Shooting Accuracy}
     
-      In addition to release conditions, recent research has emphasized the role of ball trajectory and curvature in determining shooting accuracy. \citet{slegers_role_2024} revealed a negative correlation between the terminal curvature of the ball path and longitudinal shooting accuracy, with the latter being assessed using the standard deviation of intra-individual release velocity as a proxy, given its relevance to distance control. Furthermore, \citet{slegers_role_2024} validated that in the S-shaped shooting path, better shooters exhibit a sharper transition from the backswing to the forward shooting motion compared to less skilled players. Their study involved 31 professional male basketball players, each of whom attempted 40 jump shots under controlled conditions. 
+      In addition to release conditions, recent research has emphasized the role of ball trajectory and curvature in determining shooting accuracy. \citet{slegers_role_2024} revealed a negative correlation between the terminal curvature of the ball path and longitudinal shooting accuracy, with the latter being assessed using the standard deviation of the intra-individual release velocity as a proxy, given its relevance to distance control. Furthermore, \citet{slegers_role_2024} validated that in the S-shaped shooting path, better shooters exhibit a sharper transition from the backswing to the forward shooting motion compared to less skilled players. Their study involved 31 professional male basketball players, each of whom attempted 40 jump shots under controlled conditions. 
 
     \subsection{Smoothness Quantification and Other Release Factors}
 
@@ -194,7 +194,7 @@
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.8\linewidth]{reports/arxiv/distributions.png}
-        \caption{\it Distributions of key shot smoothness metrics and free throw percentage (FT\%) across all players in the study. KDE curves are used to illustrate the underlying shape of each distribution.}
+        \caption{\it Distributions of key shot smoothness metrics across all players in the study. KDE curves are used to illustrate the underlying shape of each distribution.}
         \label{fig:scattered}
     \end{figure}
     
@@ -217,7 +217,7 @@
         \label{tab:summary-stats}
     \end{table}
 
-    Table \ref{tab:wls-results} summarizes the results of estimating the WLS model (\ref{eqn:weighted-least-squares}) for each of the four curvature metrics. Each metric is a statistically significant predictor of FT\%, with each $p$-value below 0.01. Among them, the time-weighted curvature integrals demonstrate the strongest explanatory power, particularly at $\ell = 5$, which achieves the highest $R^2$ value of 0.330. This finding aligns with the controlled experiments of \citet{slegers_role_2024}, suggesting that lower terminal curvature is correlated with greater shooting performance.
+    Table \ref{tab:wls-results} summarizes the results of estimating the WLS model (\ref{eqn:weighted-least-squares}) for each of the four curvature metrics. Each metric is a statistically significant predictor of FT\%, with each $p$-value below 0.01. Among them, the time-weighted curvature integrals demonstrate the strongest explanatory power, particularly at $\ell = 5$, which achieves the highest $R^2$ value of 0.330. The confidence intervals shown in Figure~\ref{fig:regressionlines} further supports this conclusion: the regression fits, particularly at $\ell = 3$ and $\ell = 5$, exhibit relatively narrow and stable bands, indicating greater precision in the estimated relationship between curvature and FT\% in these models. This finding aligns with the controlled experiments of \citet{slegers_role_2024}, suggesting that lower terminal curvature is correlated with greater shooting performance.
 
     Interestingly, the relationship between max curvature and shooting performance runs counter to the findings of \citet{slegers_role_2024}. We find that max curvature is negatively associated with FT\%, and the relationship is statistically significant. Our overall finding is similar. Placing greater emphasis on the latter part of the ball's trajectory---where control and release are most critical---improves the model's ability to explain variations in shooting accuracy. However, it is interesting to note the directionally different relationship we see between max curvature and shooting performance. The present results reflect free throw shooting by NBA players in game conditions while the prior results reflect three-point jump shooting by lower-level professionals in practice conditions.
     
@@ -236,6 +236,13 @@
         \caption{\it Summary statistics from estimating the weighted least squares regression model (\ref{eqn:weighted-least-squares}) using each curvature metric to predict FT\%. The $p$-value tests the null hypothesis $\mathcal{H}_0 : \beta = 0$ against the one-sided alternative $\mathcal{H}_A : \beta < 0$.}
         \label{tab:wls-results}
     \end{table}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{reports/arxiv/regressionlines.png}
+        \caption{\it Weighted Least Squares (WLS) regression models illustrating the relationship between free throw percentage (FT\%) and four curvature-based shooting metrics. The black lines indicate the WLS regression fits, and the shaded red bands represent the 95\% confidence intervals around each regression line. Across all subplots, higher curvature values are associated with lower FT\%.}
+        \label{fig:scattered}
+    \end{figure}
 
 \section{Discussion}
 
