@@ -98,9 +98,15 @@ for i, metric in enumerate(metrics):
     X_pred = sm.add_constant(x_vals)
     y_pred = results.predict(X_pred)
 
-    # calculate standard errors for confidence interval
-    pred_var = results.mse_resid * (1 / weights.mean() + (x_vals - df[metric].mean())**2 / ((df[metric] - df[metric].mean())**2).sum())
-    ci = 1.96 * np.sqrt(pred_var)
+    # Standard error of the predictions
+    cov = results.cov_params()
+    se_pred = np.sqrt(
+        cov.loc['const', 'const'] +
+        x_vals**2 * cov.loc[metric, metric] +
+        2 * x_vals * cov.loc['const', metric]
+    )
+
+    ci = 1.96 * se_pred  
 
     # scatter plot with confidence intervals 
     axes[i].scatter(df[metric], y, alpha=0.7)
