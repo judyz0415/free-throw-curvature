@@ -1,0 +1,10 @@
+# MacOS garbage
+*.DS_Store
+
+# LaTeX helper files
+*.aux
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
