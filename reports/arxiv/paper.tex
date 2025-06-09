@@ -123,12 +123,12 @@
               \hat{\mathbf{P}}_n = \mathbf{M}_n^{-1} (\mathbf{T}_n^\top \mathbf{T}_n)^{-1} \mathbf{T}_n^\top \mathbf{Y}.
             \]
             
-            Figure \ref{fig:free-throw-bezier} shows an example of a free throw shot modeled using a seventh-order Bézier curve (i.e. eight control points). As seen in the figure, the curve closely follows the observed data, capturing both the smooth upward arc and the transition into the release phase of the shot. Throughout this study, we use $n = 7$ because we found this to yield satisfactory curve approximations via visual inspection of our data. This is similar to \citet{slegers_role_2024}, who used $n = 6$.
+            Figure \ref{fig:free-throw-bezier} shows an example of a free throw shot modeled using an eighth-order Bézier curve (i.e. nine control points). As seen in the figure, the curve closely follows the observed data, capturing both the smooth upward arc and the transition into the release phase of the shot. Throughout this study, we use $n = 8$ because we found this to yield satisfactory curve approximations via visual inspection of our data. This is similar to \citet{slegers_role_2024}, who used $n = 6$.
             
             \begin{figure}[H]
                 \centering
                 \includegraphics[scale=0.4]{shot1.png}
-                \caption{\it Free throw shot modeled by a Bézier curve with 8 control points. The raw data points from the shot are shown in black, while the fitted curve is shown in blue. The green points represent the control points derived through least squares optimization.}
+                \caption{\it Free throw shot modeled by a Bézier curve with nine control points. The raw data points from the shot are shown in black, while the fitted curve is shown in blue. The green points represent the control points derived through least squares optimization.}
                 \label{fig:free-throw-bezier}
             \end{figure}
 
@@ -233,7 +233,7 @@
         Time-weighted Curvature Integral ($\ell=5$) &  --48.73  & 0.0003  & 0.330 \\
         \bottomrule
         \end{tabular}
-        \caption{\it Summary statistics from estimating the weighted least squares regression model (\ref{eqn:weighted-least-squares}) using each curvature metric to predict FT\%. The $p$-value tests the null hypothesis $\mathcal{H}_0 : \beta = 0$ against the one-sided alternative $\mathcal{H}_A : \beta < 0$.}
+        \caption{\it Summary statistics from the weighted least squares regression model (\ref{eqn:weighted-least-squares}) using each curvature metric to predict FT\%. The $p$-value tests the null hypothesis $\mathcal{H}_0 : \beta = 0$ against the one-sided alternative $\mathcal{H}_A : \beta < 0$.}
         \label{tab:wls-results}
     \end{table}
     
@@ -244,7 +244,7 @@
         \label{fig:regressionlines}
     \end{figure}
 
-    Interestingly, the relationship between max curvature and shooting performance runs counter to the findings of \citet{slegers_role_2024}. We find that max curvature is negatively associated with FT\%, and the relationship is statistically significant. Our overall finding is similar. Placing greater emphasis on the latter part of the ball's trajectory---where control and release are most critical---improves the model's ability to explain variation in shooting accuracy. However, it is interesting to note the directionally different relationship we see between max curvature and shooting performance. The present results reflect free throw shooting by NBA players in game conditions while the prior results reflect three-point jump shooting by lower-level professionals in practice conditions.
+    Interestingly, the relationship between max curvature and shooting performance runs counter to the findings of \citet{slegers_role_2024}. We find that max curvature is negatively associated with FT\%. However, the primary implications of the overall results are similar. Placing greater emphasis on the latter part of the ball's trajectory---where control and release are most critical---improves the model's ability to explain variation in shooting accuracy. The present results reflect free throw shooting by NBA players in game conditions while the prior results reflect three-point jump shooting by lower-level professionals in practice conditions.
 
 \section{Discussion}
 
