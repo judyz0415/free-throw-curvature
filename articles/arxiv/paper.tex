@@ -7,7 +7,7 @@
 
 % This nastiness for the bibliography to work both locally and on Overleaf
 % https://tex.stackexchange.com/questions/623701/path-for-bib-file-working-simultaneously-in-texstudio-and-overleaf
-\bibliographystyle{\ifnum\pdfstrcmp{\jobname}{output}=0 reports/apa-good\else ../apa-good\fi}
+\bibliographystyle{\ifnum\pdfstrcmp{\jobname}{output}=0 articles/apa-good\else ../apa-good\fi}
 \linespread{1.2}
 
 \title{Ball path curvature and in-game free throw shooting proficiency in the National Basketball Association}
@@ -65,7 +65,7 @@
 
     \begin{figure}[H]
         \centering
-        \includegraphics[scale=0.3]{data_description.png}
+        \includegraphics[scale=0.3]{articles/figures/data_description.png}
         \caption{\it Three-view projection of a single free throw trajectory captured using ball tracking data. The panels display the ball's motion in the X-Y plane (view from behind shooter), X-Z plane (view from the side) and Y-Z plane (view from above), respectively. The trajectory begins at the start of the shooting motion and ends when the ball arrives at the rim. Note the compressed scale in the Y dimension (lateral offset).}
         \label{fig:data-description}
       \end{figure}
@@ -80,7 +80,7 @@
 
       \begin{figure}[H]
         \centering
-        \includegraphics[scale=0.4]{path_standardization.png}
+        \includegraphics[scale=0.4]{articles/figures/path_standardization.png}
         \caption{\it Ball trajectory in the X-Z plane for a single free throw attempt. The green marker indicates the start of the analyzed trajectory, defined as the frame where the ball is furthest from the player’s body. The red marker indicates the end point, defined as two frames after the ball reaches its maximum velocity, approximating the moment of release.}
         \label{fig:path-standardization}
       \end{figure}
@@ -127,7 +127,7 @@
             
             \begin{figure}[H]
                 \centering
-                \includegraphics[scale=0.4]{shot1.png}
+                \includegraphics[scale=0.4]{articles/figures/shot1.png}
                 \caption{\it Free throw shot modeled by a Bézier curve with nine control points. The raw data points from the shot are shown in black, while the fitted curve is shown in blue. The green points represent the control points derived through least squares optimization.}
                 \label{fig:free-throw-bezier}
             \end{figure}
@@ -171,7 +171,7 @@
 
           \begin{figure}[H]
               \centering
-              \includegraphics[width=0.8\linewidth]{weights.png}
+              \includegraphics[width=0.8\linewidth]{articles/figures/weights.png}
               \caption{\it Weighted curvature and curvature integrals for the free throw shot from Figure \ref{fig:free-throw-bezier}. The top row shows the product of time-weight and curvature, and the bottom row shows the time-weighted curvature integral \(\sigma(\ell)\), for \(\ell = 0, 3, 5\). The top-left panel shows the unweighted curvature (\(\ell = 0\)).}
               \label{fig:weights}
           \end{figure}
@@ -195,7 +195,7 @@
 
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.8\linewidth]{distributions.png}
+        \includegraphics[width=0.8\linewidth]{articles/figures/distributions.png}
         \caption{\it Distributions of key shot smoothness metrics across all players in the study. Kernel density estimate (KDE) curves are used to illustrate the underlying shape of each distribution.}
         \label{fig:scattered}
     \end{figure}
@@ -239,7 +239,7 @@
     
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.6\linewidth]{regressionlines.png}
+        \includegraphics[width=0.6\linewidth]{articles/figures/regressionlines.pngarticles/figures/regressionlines.png}
         \caption{\it Weighted Least Squares (WLS) regression models illustrating the relationship between free throw percentage (FT\%) and four curvature-based shooting metrics. The black lines indicate the WLS regression fits, and the shaded red bands represent the 95\% confidence bands around each regression line. Across all subplots, higher curvature values are associated with lower FT\%.}
         \label{fig:regressionlines}
     \end{figure}
@@ -270,6 +270,8 @@
 
   % This nastiness for the bibliography to work both locally and on Overleaf
   % https://tex.stackexchange.com/questions/623701/path-for-bib-file-working-simultaneously-in-texstudio-and-overleaf
-  \bibliography{\ifnum\pdfstrcmp{\jobname}{output}=0 reports/free-throw-curvature\else ../free-throw-curvature\fi}
+  % \bibliography{\ifnum\pdfstrcmp{\jobname}{output}=0 reports/free-throw-curvature\else ../free-throw-curvature\fi}
+  \bibliographystyle{apa-good}
+  \bibliography{articles/free-throw-curvature}
 
 \end{document}
