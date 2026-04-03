@@ -4,120 +4,96 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+plt.rcParams.update({
+    'font.family': 'serif',
+    'axes.spines.top': False,
+    'axes.spines.right': False,
+    'axes.linewidth': 0.8,
+    'xtick.major.width': 0.8,
+    'ytick.major.width': 0.8,
+})
+
 file_path = 'curvature_results.xlsx'
 df = pd.read_excel(file_path)
 
-# histograms for curvature metrics 
-plt.figure(figsize=(15, 8))  
+# ── metric labels ──────────────────────────────────────────────────────────────
+# Update L_OPTIMAL to the value reported by select_l_parameter.py.
+L_OPTIMAL = 6.0   # selected by LOO-CV in select_l_parameter.py
 
-plt.subplot(2, 2, 1)
-sns.histplot(df['Max Curvature'], kde=True, bins=15)
-plt.title('Distribution of Max Curvature', fontsize=16)
-plt.xlabel('Max Curvature')
-plt.ylabel('Frequency', fontsize=14)
-
-plt.subplot(2, 2, 2)
-sns.histplot(df['Unweighted Curvature Integral (l=0)'], kde=True, bins=15)
-plt.title('Distribution of Unweighted Curvature Integral (l=0)', fontsize=16)
-plt.xlabel('Unweighted Curvature Integral (l=0)')
-plt.ylabel('Frequency', fontsize=14)
-
-plt.subplot(2, 2, 3)
-sns.histplot(df['Time-weighted Curvature Integral (l=3)'], kde=True, bins=15)
-plt.title('Distribution of Time-weighted Curvature Integral (l=3)', fontsize=16)
-plt.xlabel('Time-weighted Curvature Integral (l=3)')
-plt.ylabel('Frequency', fontsize=14)
-
-plt.subplot(2, 2, 4)
-sns.histplot(df['Time-weighted Curvature Integral (l=5)'], kde=True, bins=15)
-plt.title('Distribution of Time-weighted Curvature Integral (l=5)', fontsize=16)
-plt.xlabel('Time-weighted Curvature Integral (l=5)')
-plt.ylabel('Frequency', fontsize=14)
-
-plt.tight_layout()
-plt.show()
-plt.savefig('distributions.png', dpi=300)
-
-# create summary table for descriptive stats for ft% and all metrics 
-metrics_all = [
-    'FT%',
-    'Max Curvature',
-    'Unweighted Curvature Integral (l=0)',
-    'Time-weighted Curvature Integral (l=3)',
-    'Time-weighted Curvature Integral (l=5)'
+# Four metrics to analyse and display.
+# 'sigma_l_0.0', 'sigma_l_3.0', 'sigma_l_5.0' correspond to ℓ = 0, 3, 5 as in the
+# original paper.  The fourth slot uses the CV-optimal ℓ.
+metrics = [
+    ('Max Curvature',          'Max Curvature'),
+    ('sigma_l_0.0',            r'Unweighted Curvature Integral ($\ell=0$)'),
+    ('sigma_l_3.0',            r'Time-weighted Curvature Integral ($\ell=3$)'),
+    (f'sigma_l_{L_OPTIMAL:.1f}', fr'Time-weighted Curvature Integral ($\ell={L_OPTIMAL:g}$)'),
 ]
-summary = pd.DataFrame(index=metrics_all)
-summary['Mean'] = df[metrics_all].mean()
-summary['Std Dev'] = df[metrics_all].std()
-summary['Range'] = df[metrics_all].apply(lambda x: f"{x.min():.2f}–{x.max():.2f}")
-summary[['Mean', 'Std Dev']] = summary[['Mean', 'Std Dev']].round(2)
-summary
 
-# WLS 
-y = df['FT%']
+# ── histograms ─────────────────────────────────────────────────────────────────
+fig, axes_hist = plt.subplots(2, 2, figsize=(12, 8))
+axes_hist = axes_hist.flatten()
+for idx, (col, label) in enumerate(metrics):
+    sns.histplot(df[col], kde=True, bins=15, ax=axes_hist[idx],
+                 color='#2c7bb6', edgecolor='white', linewidth=0.4)
+    axes_hist[idx].set_title(f'Distribution of {label}', fontsize=13)
+    axes_hist[idx].set_xlabel(label, fontsize=12)
+    axes_hist[idx].set_ylabel('Frequency', fontsize=12)
+    axes_hist[idx].tick_params(labelsize=10)
+plt.tight_layout(pad=1.5)
+plt.savefig('distributions.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# ── WLS regression ─────────────────────────────────────────────────────────────
+y       = df['FT%']
 weights = 1 / (df['FT% SE'] ** 2)
 
-metrics = [
-    'Max Curvature',
-    'Unweighted Curvature Integral (l=0)',
-    'Time-weighted Curvature Integral (l=3)',
-    'Time-weighted Curvature Integral (l=5)'
-]
-
 summary_data = []
-
-for metric in metrics:
-    X = sm.add_constant(df[metric])
-    model = sm.WLS(y, X, weights=weights)
-    results = model.fit()
-
+for col, label in metrics:
+    X      = sm.add_constant(df[col])
+    model  = sm.WLS(y, X, weights=weights)
+    result = model.fit()
     summary_data.append({
-        'Metric': metric,
-        'Coefficient': results.params[1],
-        'P-Value': results.pvalues[1],
-        'R²': results.rsquared,
-        'Adj. R²': results.rsquared_adj
+        'Metric':       label,
+        'Coefficient':  result.params.iloc[1],
+        'P-Value':      result.pvalues.iloc[1],
+        'R²':           result.rsquared,
+        'Adj. R²':      result.rsquared_adj,
     })
 
-summary_table = pd.DataFrame(summary_data)
-summary_table = summary_table.round(4)
+summary_table = pd.DataFrame(summary_data).round(4)
+print(summary_table.to_string(index=False))
 
-print(summary_table)
-
-# visualize WLS fits and confidence intervals 
+# ── regression plots ───────────────────────────────────────────────────────────
 fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 axes = axes.flatten()
 
-for i, metric in enumerate(metrics):
-    X = sm.add_constant(df[metric])
-    model = sm.WLS(y, X, weights=weights)
-    results = model.fit()
+for i, (col, label) in enumerate(metrics):
+    X      = sm.add_constant(df[col])
+    model  = sm.WLS(y, X, weights=weights)
+    result = model.fit()
 
-    # create prediction space
-    x_vals = np.linspace(df[metric].min(), df[metric].max(), 100)
+    x_vals = np.linspace(df[col].min(), df[col].max(), 100)
     X_pred = sm.add_constant(x_vals)
-    y_pred = results.predict(X_pred)
+    y_pred = result.predict(X_pred)
 
-    # Standard error of the predictions
-    cov = results.cov_params()
+    cov    = result.cov_params()
     se_pred = np.sqrt(
         cov.loc['const', 'const'] +
-        x_vals**2 * cov.loc[metric, metric] +
-        2 * x_vals * cov.loc['const', metric]
+        x_vals**2 * cov.loc[col, col] +
+        2 * x_vals * cov.loc['const', col]
     )
+    ci = 1.96 * se_pred
 
-    ci = 1.96 * se_pred  
+    axes[i].scatter(df[col], y, alpha=0.7, color='#2c7bb6', s=35, zorder=3)
+    axes[i].plot(x_vals, y_pred, color='black', linewidth=1.5, label='WLS fit')
+    axes[i].fill_between(x_vals, y_pred - ci, y_pred + ci,
+                         color='#d7191c', alpha=0.15, label='95% CI')
+    axes[i].set_xlabel(label, fontsize=12)
+    axes[i].set_ylabel('FT%', fontsize=12)
+    axes[i].tick_params(labelsize=10)
+    axes[i].legend(fontsize=10, frameon=False)
 
-    # scatter plot with confidence intervals 
-    axes[i].scatter(df[metric], y, alpha=0.7)
-    axes[i].plot(x_vals, y_pred, color='black', label='WLS Fit')
-    axes[i].fill_between(x_vals, y_pred - ci, y_pred + ci, color='red', alpha=0.15, label='95% Confidence Interval')
-      
-    axes[i].set_xlabel(metric)
-    axes[i].set_ylabel('FT%')
-    axes[i].legend()
-
-plt.tight_layout()
+plt.tight_layout(pad=1.5)
+plt.savefig('regressionlines.png', dpi=300, bbox_inches='tight')
 plt.show()
-plt.savefig('regressionlines.png', dpi=300)
-
