@@ -123,22 +123,13 @@
               \hat{\mathbf{P}}_n = \mathbf{M}_n^{-1} (\mathbf{T}_n^\top \mathbf{T}_n)^{-1} \mathbf{T}_n^\top \mathbf{Y}.
             \]
             
-            Figure \ref{fig:free-throw-bezier} shows an example of a free throw shot modeled using an eighth-order Bézier curve (i.e.\ nine control points). As seen in the figure, the curve closely follows the observed data, capturing both the smooth upward arc and the transition into the release phase of the shot.
-
+            Figure \ref{fig:free-throw-bezier} shows an example of a free throw shot modeled using an eighth-order Bézier curve (i.e. nine control points). As seen in the figure, the curve closely follows the observed data, capturing both the smooth upward arc and the transition into the release phase of the shot. Throughout this study, we use $n = 8$ because we found this to yield satisfactory curve approximations via visual inspection of our data. This is similar to \citet{slegers_role_2024}, who used $n = 6$.
+            
             \begin{figure}[H]
                 \centering
                 \includegraphics[scale=0.4]{articles/figures/shot1.png}
                 \caption{\it Free throw shot modeled by a Bézier curve with nine control points. The raw data points from the shot are shown in black, while the fitted curve is shown in blue. The green points represent the control points derived through least squares optimization.}
                 \label{fig:free-throw-bezier}
-            \end{figure}
-
-            To select $n$ in a principled manner, we fit Bézier curves of orders $n = 3, 4, \ldots, 12$ to every shot in the dataset and compute the mean in-sample mean squared fitting error (MSE) across all shots for each candidate order. As $n$ increases, the MSE decreases monotonically---additional control points allow the curve to conform more closely to the observed trajectory---but with diminishing marginal returns. We identify the optimal order as the ``knee'' of the MSE-versus-$n$ curve: the order beyond which the marginal reduction in fitting error becomes proportionally negligible. Formally, letting $\Delta_n = \overline{\text{MSE}}_{n-1} - \overline{\text{MSE}}_n$ denote the marginal reduction at step $n$, we select the order minimising the ratio $\Delta_{n+1} / \Delta_n$, i.e.\ the point at which the marginal return drops most sharply relative to the previous step. Figure~\ref{fig:bezier-order} shows the mean fitting MSE and the marginal reductions across candidate orders; this procedure selects $n = 8$, which we adopt throughout this study. This is comparable to the order $n = 6$ used by \citet{slegers_role_2024}.
-
-            \begin{figure}[H]
-                \centering
-                \includegraphics[width=0.8\linewidth]{articles/figures/select_bezier_order.png}
-                \caption{\it Selection of the Bézier curve order. Left: mean in-sample fitting MSE across all shots as a function of order $n$; right: marginal MSE reduction $\Delta_n$ from order $n-1$ to $n$. The red dashed line marks the selected order $n = 8$, identified as the knee of the error curve where the ratio of consecutive marginal reductions is minimised.}
-                \label{fig:bezier-order}
             \end{figure}
 
         \subsubsection{Curvature Calculation}
@@ -185,26 +176,6 @@
               \label{fig:weights}
           \end{figure}
 
-        \subsubsection{Selection of the Weighting Parameter}
-        \label{sec:l-selection}
-
-          The weighting parameter $\ell$ governs how strongly $\sigma(\ell)$ emphasises curvature near the end of the ball path, and its optimal value is unknown a priori. Rather than fixing $\ell$ arbitrarily, we select it using leave-one-out cross-validation (LOO-CV) at the player level, evaluating prediction accuracy across all half-integer candidates $\ell \in \{0,\, 0.5,\, 1.0,\, \ldots,\, 15.0\}$.
-
-          For each candidate $\ell$ and each held-out player $p$, we fit a weighted least squares (WLS) regression of FT\% onto $\sigma(\ell)$ on the remaining $n - 1 = 34$ players and record the squared prediction error for the held-out player, $({\widehat{\text{FT\%}}}_p - \text{FT\%}_p)^2$. Each player's observation is weighted by $1 / (\text{FT\% SE}_p)^2$, where $\text{FT\% SE}_p = \sqrt{\widehat{\text{FT\%}}_p (1 - \widehat{\text{FT\%}}_p) / \text{FTA}_p}$ is the estimated standard error of the player's FT\%. We then average these squared errors across all $n = 35$ players to obtain the LOO-CV mean squared prediction error (MSE) for $\ell$. The optimal weighting parameter is
-          \[
-            \ell^* = \arg\min_{\ell} \frac{1}{n}\sum_{p=1}^{n}\bigl(\widehat{\text{FT\%}}_p^{(-p)} - \text{FT\%}_p\bigr)^2,
-          \]
-          where $\widehat{\text{FT\%}}_p^{(-p)}$ denotes the prediction for player $p$ from the model fitted without that player.
-
-          Figure~\ref{fig:l-selection} displays the LOO-CV MSE and in-sample $R^2$ as functions of $\ell$. The LOO-CV MSE is minimised at $\ell = 6$, which we therefore adopt as our primary weighting parameter. The in-sample $R^2$ rises steeply as $\ell$ increases from 0 and plateaus around $\ell = 3$--$6$, consistent with the interpretation that curvature near the end of the shot is the most predictive portion of the trajectory, and that gains from further increasing $\ell$ beyond this range are negligible.
-
-          \begin{figure}[H]
-              \centering
-              \includegraphics[width=0.8\linewidth]{articles/figures/select_l_parameter.png}
-              \caption{\it Selection of the weighting parameter $\ell$ via player-level leave-one-out cross-validation (LOO-CV). Left: mean LOO squared prediction error for FT\% as a function of $\ell$; right: corresponding in-sample $R^2$ from the WLS regression of FT\% onto $\sigma(\ell)$. The red dashed line marks the CV-selected optimum at $\ell = 6$.}
-              \label{fig:l-selection}
-          \end{figure}
-
     \subsection{Weighted Least Squares Regression}
 
       The purpose of the curvature metrics described in the previous section is to quantify the smoothness of each shot. Ultimately, our goal is to test the association between shot smoothness and shooting accuracy. While \citet{slegers_role_2024} measured shooting performance using intra-individual release velocity standard deviation in a controlled setting, this metric is not readily available or reliable for in-game data due to the lack of biomechanical tracking data, which makes it difficult to precisely identify the moment of ball release. Therefore, we use player-level free throw percentage (FT\%) as the outcome variable. FT\% reflects real-world shooting performance under competitive, high pressure and is widely accepted as a summary statistic for evaluating a player’s free throw success over time. It comes with the added benefit that our sample size for estimating season-long FT\% is much greater than the approximately 15 shots with ball tracking data we observe for each player.
@@ -218,7 +189,7 @@
     
 \section{Results}
     
-    The metrics computed for this study include (a) max curvature $\kappa_{\max} = \max_\tau[\kappa(\tau)]$ and (b) time-weighted curvature integrals with weighting factors $\ell = 0$, $3$, and $6$, where $\ell = 6$ is the CV-selected optimum described in Section~\ref{sec:l-selection}. We also include $\ell = 3$ as an intermediate value to illustrate the effect of progressively increasing the weighting parameter. For each player, these metrics are computed on a per-shot basis and subsequently averaged across all of their recorded free throw attempts (approximately 15 shots per player) to obtain player-level estimates.
+    The metrics computed for this study include (a) max curvature $\kappa_{\max} = \max_\tau[\kappa(\tau)]$ and (b) time-weighted curvature integrals with weighting factors $\ell$ = 0, 3, and 5. For each player, these metrics are computed on a per-shot basis and subsequently averaged across all of their recorded free throw attempts (approximately 15 shots per player) to obtain player-level estimates.
 
     Figure \ref{fig:scattered} shows the distribution of FT\% and all curvature metrics among the 35 players in the sample. FT\% appears to be approximately symmetric but slightly skewed to the left, which is consistent with most NBA players achieving moderate to high accuracy on the free throw line. All of the curvature metrics are right-skewed, reflecting that a few players have large peak or terminal curvatures.
 
@@ -241,14 +212,14 @@
         Max Curvature & 5.50 & 5.15 & 0.76--23.85 \\
         Unweighted Curvature Integral ($\ell=0$) & 0.91 & 0.34 & 0.42--1.68 \\
         Time-weighted Curvature Integral ($\ell=3$) & 0.63 & 0.25 & 0.28--1.25 \\
-        Time-weighted Curvature Integral ($\ell=6$, CV-selected) & 0.45 & 0.17 & 0.24--0.97 \\ % TODO: update mean/SD/range from result\_analysis output
+        Time-weighted Curvature Integral ($\ell=5$) & 0.45 & 0.17 & 0.24--0.97 \\
         \bottomrule
         \end{tabular}
         \caption{\it Descriptive statistics of free throw percentage and ball path curvature metrics ($n = 35$).}
         \label{tab:summary-stats}
     \end{table}
 
-    Table \ref{tab:wls-results} summarizes the results of estimating the WLS model (\ref{eqn:weighted-least-squares}) for each of the four curvature metrics. Each metric is a statistically significant predictor of FT\%, with each $p$-value below 0.01. Among them, the time-weighted curvature integrals demonstrate the strongest explanatory power, particularly at $\ell = 6$ (the CV-selected optimum), which achieves the highest $R^2$ value among the metrics examined. The confidence bands shown in Figure \ref{fig:regressionlines} illustrate this conclusion: the regression fits at $\ell = 3$ and $\ell = 6$ exhibit relatively narrower and more stable bands, indicating greater precision in the estimated relationship between curvature and FT\% in these models. This finding aligns with the controlled experiments of \citet{slegers_role_2024}, suggesting that lower terminal curvature is correlated with greater shooting performance.
+    Table \ref{tab:wls-results} summarizes the results of estimating the WLS model (\ref{eqn:weighted-least-squares}) for each of the four curvature metrics. Each metric is a statistically significant predictor of FT\%, with each $p$-value below 0.01. Among them, the time-weighted curvature integrals demonstrate the strongest explanatory power, particularly at $\ell = 5$, which achieves the highest $R^2$ value of 0.330. The confidence bands shown in Figure \ref{fig:regressionlines} illustrate this conclusion: the regression fits, particularly at $\ell = 3$ and $\ell = 5$, exhibit relatively more narrow and more stable bands, indicating greater precision in the estimated relationship between curvature and FT\% in these models. This finding aligns with the controlled experiments of \citet{slegers_role_2024}, suggesting that lower terminal curvature is correlated with greater shooting performance.
 
     \begin{table}[H]
         \centering
@@ -259,7 +230,7 @@
         Max Curvature                               &   --0.98  & 0.0043  & 0.222 \\
         Unweighted Curvature Integral ($\ell=0$)    &  --15.90  & 0.0053  & 0.213 \\
         Time-weighted Curvature Integral ($\ell=3$) &  --29.81  & 0.0004  & 0.316 \\
-        Time-weighted Curvature Integral ($\ell=6$, CV-selected) &  --48.73  & 0.0003  & 0.330 \\ % TODO: update $\beta$, $p$-value, and $R^2$ for $\ell=6$ from result\_analysis output
+        Time-weighted Curvature Integral ($\ell=5$) &  --48.73  & 0.0003  & 0.330 \\
         \bottomrule
         \end{tabular}
         \caption{\it Summary statistics from the weighted least squares regression model (\ref{eqn:weighted-least-squares}) using each curvature metric to predict FT\%. The $p$-value tests the null hypothesis $\mathcal{H}_0 : \beta = 0$ against the one-sided alternative $\mathcal{H}_A : \beta < 0$.}
@@ -268,7 +239,7 @@
     
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.6\linewidth]{articles/figures/regressionlines.png}
+        \includegraphics[width=0.6\linewidth]{articles/figures/regressionlines.pngarticles/figures/regressionlines.png}
         \caption{\it Weighted Least Squares (WLS) regression models illustrating the relationship between free throw percentage (FT\%) and four curvature-based shooting metrics. The black lines indicate the WLS regression fits, and the shaded red bands represent the 95\% confidence bands around each regression line. Across all subplots, higher curvature values are associated with lower FT\%.}
         \label{fig:regressionlines}
     \end{figure}
@@ -279,7 +250,7 @@
 
     \subsection{Results}
       
-      The results of this study provide strong empirical support for the hypothesis that smoother shot trajectories---particularly those with less curvature near the point of release---are associated with greater free throw accuracy in real-game contexts in the NBA. Among the metrics examined, the time-weighted curvature integrals exhibited the strongest predictive power, particularly at the CV-selected weighting parameter $\ell = 6$ (Section~\ref{sec:l-selection}). This aligns with the intuition that late-stage control of the shot is critical for accuracy and supports the data-driven choice of $\ell$.
+      The results of this study provide strong empirical support for the hypothesis that smoother shot trajectories---particularly those with less curvature near the point of release---are associated with greater free throw accuracy in real-game contexts in the NBA. Among the metrics examined, the time-weighted curvature integrals exhibited the strongest predictive power, particularly when using higher weighting parameters (\(\ell=3\) and \(\ell=5\)). This aligns with the intuition that late-stage control of the shot is critical for accuracy.
       
       Our findings are consistent in some ways with the conclusions drawn by \citet{slegers_role_2024}, and in some ways they differ. Both studies found that terminal ball path curvature is the strongest predictor of shooting performance and that coaches should focus on smoothing terminal curvature rather than smoothing max curvature. It is interesting to note that the two studies found directionally opposing conclusions regarding the relationship between max curvature and shooting performance. In the present study, max curvature is negatively associated with shooting performance.
 
