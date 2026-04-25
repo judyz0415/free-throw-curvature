@@ -2,7 +2,7 @@
 
 > Does the arc of the ball matter? A quantitative study of ball-path curvature and free-throw shooting proficiency in the NBA.
 
-![Curvature overview](image.png)
+![Curvature overview](consistency_sandbox.png)
 
 ## TL;DR
 
