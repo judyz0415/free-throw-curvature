@@ -1,18 +1,90 @@
-# free-throw-curvature
+# Free-Throw Curvature
 
-This repository contains all code and results used in the analysis presented in our paper on the relationship between ball path curvature and free throw shooting proficiency in the NBA.
+> Does the arc of the ball matter? A quantitative study of ball-path curvature and free-throw shooting proficiency in the NBA.
 
-## 📄 Description of Files
+![Curvature overview](image.png)
 
-| File/Folder                 | Description                                                                 |
-|----------------------------|-----------------------------------------------------------------------------|
-| `__init__.py`              | Enables package-style imports in the directory                             |
-| `bezier_curve_functions`   | Python module for Bézier curve fitting and curvature calculation            |
-| `metric_calculation`       | Script to calculate various curvature metrics for all players               |
-| `result_analysis`          | Script for merging data, statistical analysis, and visualization            |
-| `curvature_results.xlsx`   | Output file summarizing curvature metrics by player                         |
-| `free_throw_stats.xlsx`    | Free throw stats from 2023–2024 NBA season (extracted from ESPN.com)       |
-| `distributions.png`        | Histograms showing distributions of curvature metrics                       |
-| `regressionlines.png`      | Regression plots of curvature metrics against free throw performance        |
+## TL;DR
 
+We fit Bézier curves to ball trajectories from NBA free-throw attempts, compute multiple curvature metrics per player, and regress those metrics against 2023–24 season free-throw percentage. The repository contains every step: the paper, the code, the curated data, and the figures used in the write-up.
 
+## Why this matters for basketball operations
+
+Shot mechanics are measurable. Curvature-derived features provide an objective lens on shooting form that complements video-based scouting — useful for player development, acquisition evaluation, and draft modeling of shooters.
+
+## Repository structure
+
+```
+free-throw-curvature/
+├── articles/           # LaTeX source + compiled PDF of the research paper
+├── code/               # Python modules and analysis scripts
+│   ├── __init__.py
+│   ├── bezier_curve_functions.py   # Bézier curve fitting + curvature calculation
+│   ├── metric_calculation.py       # Computes curvature metrics for all players
+│   ├── result_analysis.py          # Merging, statistical analysis, visualization
+│   ├── curvature_results.xlsx      # Output: per-player curvature metrics
+│   ├── free_throw_stats.xlsx       # 2023-24 NBA FT stats (source: ESPN.com)
+│   ├── distributions.png           # Histograms of curvature metrics
+│   └── regressionlines.png         # Regressions vs. FT performance
+├── image.png           # Hero figure
+├── .gitignore
+├── LICENSE
+└── README.md
+```
+
+## Methods
+
+1. **Trajectory capture.** Ball paths for free-throw attempts are parameterized from broadcast video.
+2. **Curve fitting.** Each path is modeled with a Bézier curve (`bezier_curve_functions.py`), trading off fidelity and smoothness.
+3. **Metric calculation.** Per-player curvature statistics are aggregated in `metric_calculation.py` and written to `curvature_results.xlsx`.
+4. **Statistical analysis.** `result_analysis.py` merges curvature metrics with season free-throw percentages from `free_throw_stats.xlsx`, then runs distributional comparisons and regressions. Key plots are exported to `distributions.png` and `regressionlines.png`.
+
+## Data
+
+| Source | File | Notes |
+| --- | --- | --- |
+| ESPN.com — 2023-24 NBA season | `code/free_throw_stats.xlsx` | Player-level free-throw attempts, makes, and FT%. |
+| Derived (this project) | `code/curvature_results.xlsx` | Curvature metrics computed per player from ball-path fits. |
+
+## Reproducing the analysis
+
+```bash
+# 1. Clone
+git clone https://github.com/judyz0415/free-throw-curvature.git
+cd free-throw-curvature
+
+# 2. (Recommended) Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt   # see note below
+
+# 4. Run the pipeline
+cd code
+python metric_calculation.py     # regenerates curvature_results.xlsx
+python result_analysis.py        # regenerates figures + runs regressions
+```
+
+> **Note:** if a `requirements.txt` is not yet present, the minimum dependencies are: `numpy`, `pandas`, `scipy`, `matplotlib`, `openpyxl`. A pinned `requirements.txt` will make the repo reproducible for reviewers — see `SETUP_NOTES.md` in this folder for the recommended contents.
+
+## Paper
+
+The LaTeX source and compiled PDF live in `articles/`. If you cite this work, please use the entry below (update once the paper is formally posted or published):
+
+```bibtex
+@misc{zhu2025freethrowcurvature,
+  title  = {Ball-Path Curvature and Free-Throw Shooting Proficiency in the NBA},
+  author = {Zhu, Judy},
+  year   = {2025},
+  note   = {Working paper. Code and data: https://github.com/judyz0415/free-throw-curvature}
+}
+```
+
+## License
+
+Released under the [MIT License](LICENSE). Free-throw stats are derived from publicly available ESPN.com data and are included here for research reproducibility.
+
+## Contact
+
+Judy Zhu — judy.zhu6052@gmail.com — [@judyz0415](https://github.com/judyz0415)
