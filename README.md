@@ -2,15 +2,20 @@
 
 > Does the arc of the ball matter? A quantitative study of ball-path curvature and free-throw shooting proficiency in the NBA.
 
-![Curvature overview](consistency_sandbox.png)
-
 ## TL;DR
 
-We fit Bézier curves to ball trajectories from NBA free-throw attempts, compute multiple curvature metrics per player, and regress those metrics against 2023–24 season free-throw percentage. The repository contains every step: the paper, the code, the curated data, and the figures used in the write-up.
+We reconstruct NBA free-throw trajectories using Bézier curves, engineer curvature-based shooting metrics, and test how they relate to 2023–24 free-throw performance. End-to-end pipeline included: cleaned data, modeling, validation, and publication-ready visuals.
 
 ## Why this matters for basketball operations
 
-Shot mechanics are measurable. Curvature-derived features provide an objective lens on shooting form that complements video-based scouting — useful for player development, acquisition evaluation, and draft modeling of shooters.
+Shooting mechanics aren’t just visual. They’re quantifiable.
+Curvature-based metrics offer a new, objective lens on shot quality that complements film and scouting intuition.
+
+**Applications:**
+
+**Player development**: diagnose and refine shooting form
+**Scouting & acquisition**: identify mechanically sound shooters beyond surface stats
+**Draft modeling**: project shooting translation with physics-informed features
 
 ## Repository structure
 
@@ -34,7 +39,7 @@ free-throw-curvature/
 
 ## Methods
 
-1. **Trajectory capture.** Ball paths for free-throw attempts are parameterized from broadcast video.
+1. **Trajectory capture.** Ball paths for free-throw attempts are parameterized from Second Spectrum ball tracking data.
 2. **Curve fitting.** Each path is modeled with a Bézier curve (`bezier_curve_functions.py`), trading off fidelity and smoothness.
 3. **Metric calculation.** Per-player curvature statistics are aggregated in `metric_calculation.py` and written to `curvature_results.xlsx`.
 4. **Statistical analysis.** `result_analysis.py` merges curvature metrics with season free-throw percentages from `free_throw_stats.xlsx`, then runs distributional comparisons and regressions. Key plots are exported to `distributions.png` and `regressionlines.png`.
