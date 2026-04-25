@@ -13,9 +13,9 @@ Curvature-based metrics offer a new, objective lens on shot quality that complem
 
 **Applications:**
 
-**Player development**: diagnose and refine shooting form
-**Scouting & acquisition**: identify mechanically sound shooters beyond surface stats
-**Draft modeling**: project shooting translation with physics-informed features
+**Player development**: diagnose and refine shooting form.
+**Scouting & acquisition**: identify mechanically sound shooters beyond surface stats.
+**Draft modeling**: project shooting translation with physics-informed features.
 
 ## Repository structure
 
