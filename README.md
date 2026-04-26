@@ -1,7 +1,7 @@
 # Free-Throw Curvature
 
 > Does the arc of the ball matter? A quantitative study of ball-path curvature and free-throw shooting proficiency in the NBA.
-![Free Throw Curvature](code/Klay Thompson_FT.png)
+![Free Throw Curvature](code/Klay%20Thompson_FT.png)
 
 ## TL;DR
 
