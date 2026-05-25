@@ -1,8 +1,10 @@
+import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.integrate import simpson
 
 plt.rcParams.update({
     'font.family': 'serif',
@@ -16,18 +18,37 @@ plt.rcParams.update({
 file_path = 'curvature_results.xlsx'
 df = pd.read_excel(file_path)
 
-# ── metric labels ──────────────────────────────────────────────────────────────
-# Update L_OPTIMAL to the value reported by select_l_parameter.py.
-L_OPTIMAL = 6.0   # selected by LOO-CV in select_l_parameter.py
+# ── load optimal parameters from nonlinear solver ──────────────────────────────
+try:
+    with open('optimal_params.json') as f:
+        _params = json.load(f)
+    ELL_OPT  = _params['ell']
+    R2_OOS   = _params['r2_oos']
+    print(f"Loaded optimal_params.json: ell={ELL_OPT:.4f}, R²_OOS={R2_OOS:.4f}")
+except FileNotFoundError:
+    ELL_OPT = 6.0   # fallback if select_l_parameter.py has not been run yet
+    R2_OOS  = None
+    print("optimal_params.json not found — falling back to ell=6.0")
 
-# Four metrics to analyse and display.
-# 'sigma_l_0.0', 'sigma_l_3.0', 'sigma_l_5.0' correspond to ℓ = 0, 3, 5 as in the
-# original paper.  The fourth slot uses the CV-optimal ℓ.
+# compute sigma_ell for the optimal ell directly from kappa arrays
+try:
+    _T = np.linspace(0, 1, 100)
+    _kappas = np.load('kappa_arrays.npy')   # (n_players, 100)
+    _w = (ELL_OPT + 1) * _T ** ELL_OPT
+    df['sigma_ell_opt'] = [float(simpson(_w * k, _T)) for k in _kappas]
+    _col4   = 'sigma_ell_opt'
+    _label4 = fr'Time-weighted Curvature Integral ($\ell={ELL_OPT:.2f}$)'
+except FileNotFoundError:
+    _col4   = f'sigma_l_{ELL_OPT:.1f}'
+    _label4 = fr'Time-weighted Curvature Integral ($\ell={ELL_OPT:g}$)'
+    print("kappa_arrays.npy not found — using pre-computed sigma_l column")
+
+# ── metric labels ──────────────────────────────────────────────────────────────
 metrics = [
-    ('Max Curvature',          'Max Curvature'),
-    ('sigma_l_0.0',            r'Unweighted Curvature Integral ($\ell=0$)'),
-    ('sigma_l_3.0',            r'Time-weighted Curvature Integral ($\ell=3$)'),
-    (f'sigma_l_{L_OPTIMAL:.1f}', fr'Time-weighted Curvature Integral ($\ell={L_OPTIMAL:g}$)'),
+    ('Max Curvature', 'Max Curvature'),
+    ('sigma_l_0.0',   r'Unweighted Curvature Integral ($\ell=0$)'),
+    ('sigma_l_3.0',   r'Time-weighted Curvature Integral ($\ell=3$)'),
+    (_col4,           _label4),
 ]
 
 # ── histograms ─────────────────────────────────────────────────────────────────
@@ -53,13 +74,17 @@ for col, label in metrics:
     X      = sm.add_constant(df[col])
     model  = sm.WLS(y, X, weights=weights)
     result = model.fit()
-    summary_data.append({
+    row = {
         'Metric':       label,
         'Coefficient':  result.params.iloc[1],
         'P-Value':      result.pvalues.iloc[1],
         'R²':           result.rsquared,
         'Adj. R²':      result.rsquared_adj,
-    })
+    }
+    # attach out-of-sample R² only for the optimal-ell model
+    if col == _col4 and R2_OOS is not None:
+        row['OOS R² (LOOCV)'] = R2_OOS
+    summary_data.append(row)
 
 summary_table = pd.DataFrame(summary_data).round(4)
 print(summary_table.to_string(index=False))

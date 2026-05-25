@@ -1,90 +1,128 @@
 """
-Select the optimal weighting parameter l 
+Jointly select the regression parameters (alpha, beta) and weighting exponent ell
+by minimising the in-sample weighted residual sum of squares using a nonlinear
+solver (scipy.optimize.curve_fit).
 
-Uses leave-one-out (LOO) cross-validation at the *player* level:
-  for each candidate l and each held-out player p,
-    fit WLS on the remaining 34 players → predict FT% for player p.
-The l minimising LOO prediction MSE is selected as optimal.
+The model is:
+    FT%(i) = alpha + beta * sigma_ell(i),
+    sigma_ell(i) = integral_0^1  (ell+1) * t^ell * kappa_i(t)  dt
 
-Prerequisite: run metric_calculation first to generate curvature_results.xlsx,
-which must contain sigma_l_<value> columns for all candidate l values).
+where kappa_i(t) is the mean curvature profile for player i (from kappa_arrays.npy).
+All three parameters — alpha, beta, ell — are optimised simultaneously for in-sample
+fit, treating FT% SE as measurement uncertainty (equivalent to weighted least squares).
+
+Separately, leave-one-out cross-validation at the player level is used to calculate
+the out-of-sample R²: for each held-out player, alpha/beta/ell are re-estimated on
+the remaining 34 players and used to predict the held-out player's FT%.
+
+Prerequisite: run metric_calculation first to generate curvature_results.xlsx and
+kappa_arrays.npy (both in the same directory as this script).
+
+Outputs:
+  optimal_params.json     — optimal alpha, beta, ell, in-sample R², out-of-sample R²
+  select_l_parameter.png  — in-sample and out-of-sample prediction scatter plots
 """
 
+import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.integrate import simpson
+from scipy.optimize import curve_fit
+
+T_INTERVAL = np.linspace(0, 1, 100)
 
 # ── load data ──────────────────────────────────────────────────────────────────
 df = pd.read_excel('curvature_results.xlsx')
+y      = df['FT%'].values
+sigma  = df['FT% SE'].values          # measurement std dev for WLS
+kappas = np.load('kappa_arrays.npy')  # shape: (n_players, 100), aligned with df rows
 
-y = df['FT%'].values
-weights = 1.0 / (df['FT% SE'].values ** 2)
+assert len(y) == len(kappas), "curvature_results.xlsx and kappa_arrays.npy are misaligned"
 
-# candidate l values: every column named sigma_l_<value>
-sigma_cols = sorted(
-    [c for c in df.columns if c.startswith('sigma_l_')],
-    key=lambda c: float(c.split('_')[-1])
+# ── model definition ──────────────────────────────────────────────────────────
+def compute_sigma_ell(kappa, ell):
+    """Weighted curvature integral for a single player."""
+    w = (ell + 1) * T_INTERVAL ** ell
+    return float(simpson(w * kappa, T_INTERVAL))
+
+def model(kappas_2d, alpha, beta, ell):
+    """
+    Nonlinear model: FT%(i) = alpha + beta * sigma_ell(i).
+    kappas_2d: (n_players, 100) array passed by curve_fit as xdata.
+    """
+    sigmas = np.array([compute_sigma_ell(k, ell) for k in kappas_2d])
+    return alpha + beta * sigmas
+
+# ── in-sample joint optimisation ──────────────────────────────────────────────
+print("Fitting nonlinear model (alpha, beta, ell) jointly on all players …")
+
+p0     = [float(np.mean(y)), 5.0, 6.0]         # (alpha, beta, ell) starting values
+bounds = ([-np.inf, -np.inf, 0.0],
+          [ np.inf,  np.inf, 20.0])
+
+popt, pcov = curve_fit(
+    model, kappas, y,
+    p0=p0, sigma=sigma, absolute_sigma=True,
+    bounds=bounds, maxfev=10_000,
 )
-l_values = np.array([float(c.split('_')[-1]) for c in sigma_cols])
+alpha_opt, beta_opt, ell_opt = popt
 
-# ── LOO-CV WLS ────────────────────────────────────────────────────────────────
-def loo_cv_wls(sigma_vec, y, weights):
-    """
-    LOO-CV for WLS: y ~ alpha + beta * sigma_vec.
-    Returns (mean LOO MSE, array of per-player squared errors).
-    """
-    n = len(y)
-    sq_errors = np.zeros(n)
-    for p in range(n):
-        train = [i for i in range(n) if i != p]
-        X_tr  = np.column_stack([np.ones(n - 1), sigma_vec[train]])
-        W     = np.diag(weights[train])
-        XtW   = X_tr.T @ W
-        b     = np.linalg.solve(XtW @ X_tr, XtW @ y[train])
-        y_hat = b[0] + b[1] * sigma_vec[p]
-        sq_errors[p] = (y[p] - y_hat) ** 2
-    return float(np.mean(sq_errors)), sq_errors
+y_hat_insample = model(kappas, *popt)
+# Weighted R² (consistent with WLS objective and statsmodels output)
+w              = 1.0 / sigma ** 2
+y_bar_w        = float(np.average(y, weights=w))
+ss_tot_w       = float(np.sum(w * (y - y_bar_w) ** 2))
+ss_res_in_w    = float(np.sum(w * (y - y_hat_insample) ** 2))
+r2_insample    = 1.0 - ss_res_in_w / ss_tot_w
+# Unweighted SS for OOS R² denominator (standard out-of-sample evaluation)
+ss_tot         = float(np.sum((y - np.mean(y)) ** 2))
 
-# ── also compute in-sample R² for context ─────────────────────────────────────
-import statsmodels.api as sm
+print(f"\nIn-sample optimal parameters:")
+print(f"  alpha = {alpha_opt:.4f}")
+print(f"  beta  = {beta_opt:.4f}")
+print(f"  ell   = {ell_opt:.4f}")
+print(f"  In-sample R² = {r2_insample:.4f}")
 
-def wls_r2(sigma_vec, y, weights):
+# ── LOOCV for out-of-sample R² ────────────────────────────────────────────────
+print("\nRunning player-level LOOCV for out-of-sample R² …")
+
+n_players = len(y)
+y_oos     = np.zeros(n_players)
+
+for p in range(n_players):
+    train = [i for i in range(n_players) if i != p]
     try:
-        X = sm.add_constant(sigma_vec)
-        res = sm.WLS(y, X, weights=weights).fit()
-        return res.rsquared, res.pvalues[1]
-    except Exception:
-        return np.nan, np.nan
+        popt_loo, _ = curve_fit(
+            model, kappas[train], y[train],
+            p0=popt,                   # warm-start from full-data solution
+            sigma=sigma[train], absolute_sigma=True,
+            bounds=bounds, maxfev=10_000,
+        )
+    except RuntimeError:
+        popt_loo = popt                # fall back to full-data solution
+    y_oos[p] = model(kappas[[p]], *popt_loo)[0]
 
-# ── run across all l values ───────────────────────────────────────────────────
-print("Computing LOO-CV MSE and in-sample R² for each l …")
-loo_mse = np.zeros(len(l_values))
-r2_vals = np.zeros(len(l_values))
-pval_vals = np.zeros(len(l_values))
+ss_res_oos = float(np.sum((y - y_oos) ** 2))
+r2_oos     = 1.0 - ss_res_oos / ss_tot
 
-for j, (col, l) in enumerate(zip(sigma_cols, l_values)):
-    sigma_vec = df[col].values
-    loo_mse[j], _ = loo_cv_wls(sigma_vec, y, weights)
-    r2_vals[j], pval_vals[j] = wls_r2(sigma_vec, y, weights)
+print(f"  Out-of-sample R² (LOOCV) = {r2_oos:.4f}")
 
-# ── identify optimal l ────────────────────────────────────────────────────────
-optimal_idx = int(np.argmin(loo_mse))
-optimal_l   = l_values[optimal_idx]
+# ── save parameters ──────────────────────────────────────────────────────────
+results = {
+    'alpha':       float(alpha_opt),
+    'beta':        float(beta_opt),
+    'ell':         float(ell_opt),
+    'r2_insample': float(r2_insample),
+    'r2_oos':      float(r2_oos),
+}
+with open('optimal_params.json', 'w') as f:
+    json.dump(results, f, indent=2)
+print("\nSaved optimal_params.json")
 
-print(f"\nOptimal l (min LOO-CV MSE): l = {optimal_l:.1f}")
-print(f"  In-sample R² at optimal l:  {r2_vals[optimal_idx]:.4f}")
-print(f"  p-value at optimal l:        {pval_vals[optimal_idx]:.6f}")
-
-# print summary for integer l values
-print("\nSummary for integer l values:")
-print(f"  {'l':>5}  {'LOO-CV MSE':>12}  {'R²':>8}  {'p-value':>10}")
-for j, l in enumerate(l_values):
-    if l == int(l):
-        marker = " ←" if j == optimal_idx else ""
-        print(f"  {l:5.0f}  {loo_mse[j]:12.6f}  {r2_vals[j]:8.4f}  {pval_vals[j]:10.6f}{marker}")
-
-# ── plot ───────────────────────────────────────────────────────────────────────
+# ── plot: in-sample and out-of-sample predictions ─────────────────────────────
 plt.rcParams.update({
+    'font.family': 'serif',
     'axes.spines.top': False,
     'axes.spines.right': False,
     'axes.linewidth': 0.8,
@@ -92,29 +130,27 @@ plt.rcParams.update({
     'ytick.major.width': 0.8,
 })
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
 
-# panel 1: LOO-CV MSE vs l
-axes[0].plot(l_values, loo_mse, color='#2c7bb6', linewidth=1.8)
-axes[0].scatter(l_values, loo_mse, color='#2c7bb6', s=25, zorder=4)
-axes[0].axvline(optimal_l, color='#d7191c', linestyle='--', linewidth=1.2,
-                label=fr'Optimal $\ell = {optimal_l:.1f}$')
-axes[0].set_xlabel(r'Weighting parameter $\ell$', fontsize=12)
-axes[0].set_ylabel('LOO-CV MSE', fontsize=12)
-axes[0].set_title(r'LOO-CV MSE vs. $\ell$', fontsize=13)
-axes[0].tick_params(labelsize=10)
-axes[0].legend(fontsize=10, frameon=False)
+lims = [min(y.min(), y_hat_insample.min(), y_oos.min()) - 0.02,
+        max(y.max(), y_hat_insample.max(), y_oos.max()) + 0.02]
 
-# panel 2: in-sample R² vs l
-axes[1].plot(l_values, r2_vals, color='#2c7bb6', linewidth=1.8)
-axes[1].scatter(l_values, r2_vals, color='#2c7bb6', s=25, zorder=4)
-axes[1].axvline(optimal_l, color='#d7191c', linestyle='--', linewidth=1.2,
-                label=fr'Optimal $\ell = {optimal_l:.1f}$')
-axes[1].set_xlabel(r'Weighting parameter $\ell$', fontsize=12)
-axes[1].set_ylabel(r'In-sample $R^2$', fontsize=12)
-axes[1].set_title(r'In-sample $R^2$ vs. $\ell$', fontsize=13)
-axes[1].tick_params(labelsize=10)
-axes[1].legend(fontsize=10, frameon=False)
+for ax, y_pred, r2, title in [
+    (axes[0], y_hat_insample, r2_insample,
+     fr'In-sample fit  ($\ell^* = {ell_opt:.2f}$)'),
+    (axes[1], y_oos,          r2_oos,
+     r'Out-of-sample predictions (LOOCV)'),
+]:
+    ax.scatter(y, y_pred, color='#2c7bb6', s=35, alpha=0.8, zorder=3)
+    ax.plot(lims, lims, color='black', linewidth=1.0, linestyle='--', zorder=2)
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+    ax.set_xlabel('Actual FT%', fontsize=12)
+    ax.set_ylabel('Predicted FT%', fontsize=12)
+    ax.set_title(title, fontsize=13)
+    ax.tick_params(labelsize=10)
+    ax.text(0.05, 0.92, fr'$R^2 = {r2:.3f}$',
+            transform=ax.transAxes, fontsize=11)
 
 plt.tight_layout(pad=1.5)
 plt.savefig('select_l_parameter.png', dpi=300, bbox_inches='tight')

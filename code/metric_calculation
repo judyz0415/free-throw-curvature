@@ -19,9 +19,10 @@ player_names = [
 file_temp = '/Users/ruoqianzhu/Desktop/undergrad/freethrows/{} FTs.xlsx'
 
 # Bézier curve order: set to the value selected by select_bezier_order.py.
-N_BEZIER = 8
+N_BEZIER = 5
 
 results = []
+mean_kappas = []          # per-player mean curvature arrays, aligned with results
 t_interval = np.linspace(0, 1, 100)
 
 # l values for the weighted curvature integral.
@@ -35,6 +36,7 @@ for player in player_names:
 
     max_curvatures = []
     sigma_by_l = {l: [] for l in l_values}
+    kappa_list = []       # per-shot curvature arrays for this player
 
     for sheet_name, df in sheets_dict.items():
         df['E_Distance'] = df['E_Distance'].abs()
@@ -58,6 +60,8 @@ for player in player_names:
         x_vals, y_vals = bezier_curve(control_points, num_points=100)
         curvatures = np.array([bezier_curvature(control_points, t) for t in t_interval])
 
+        kappa_list.append(curvatures)
+
         # max curvature (trimmed to reduce noise)
         start_idx = int(0.4 * len(curvatures))
         end_idx = int(0.91 * len(curvatures))
@@ -67,6 +71,9 @@ for player in player_names:
         for l in l_values:
             w_l = (l + 1) * t_interval ** l
             sigma_by_l[l].append(simpson(w_l * curvatures, t_interval))
+
+    mean_kappa = np.mean(kappa_list, axis=0) if kappa_list else np.zeros(100)
+    mean_kappas.append(mean_kappa)
 
     row = {'Player': player, 'Max Curvature': np.mean(max_curvatures)}
     for l in l_values:
@@ -79,3 +86,6 @@ stats_df['Player'] = stats_df['Player'].str.strip().str.replace('-', ' ', regex=
 output_df = pd.merge(output_df, stats_df, how='left', on='Player')
 output_df.to_excel('curvature_results.xlsx', index=False)
 print("Saved curvature_results.xlsx")
+
+np.save('kappa_arrays.npy', np.array(mean_kappas))
+print(f"Saved kappa_arrays.npy  shape: {np.array(mean_kappas).shape}")
